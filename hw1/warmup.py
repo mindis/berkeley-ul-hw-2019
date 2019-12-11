@@ -4,6 +4,7 @@ import tensorflow_probability as tfp
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from utils import tf_log2
 
 def sample_data():
     """
@@ -58,7 +59,7 @@ def main():
     """
     # setup
     X_train, X_val, X_test = sample_data()
-    model = MLE()
+    model = Model()
     train_log = TrainingLogger()
     # train
     train(X_train, X_val, model, train_log)
@@ -96,12 +97,7 @@ def plot_model(model):
     plt.show()
 
 
-def tf_log2(probs):
-    nat_log = tf.math.log(probs)
-    return nat_log / tf.math.log(tf.constant(2, dtype=nat_log.dtype))
-
-
-class MLE:
+class Model:
     def __init__(self):
         self.setup_model()
 
