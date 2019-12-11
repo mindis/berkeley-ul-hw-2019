@@ -5,7 +5,7 @@ def gather_nd(x, inds, name="gather_nd"):
     """
     For ith row of x, gathers the inds[i] element.
     """
-    indices = tf.stack([tf.range(tf.shape(inds)[0]), inds], axis=1)
+    indices = tf.stack([tf.range(tf.shape(inds)[0], dtype=inds.dtype), inds], axis=1)
     return tf.gather_nd(x, indices, name=name)
 
 

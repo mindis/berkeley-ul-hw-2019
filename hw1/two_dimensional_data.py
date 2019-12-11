@@ -13,29 +13,35 @@ def load_distribution():
     return np.load("distribution.npy")
 
 
-def plot_distribution_heatmap(data):
+def plot_distribution_heatmap(data, title):
     sns.heatmap(data)
+    plt.title(title)
     plt.show()
 
 
-def sample_distribution(distribution):
+def get_dataset(distribution, pct_train=0.65, pct_val=0.15):
     """
     Samples 100,000 points
-    Returns train (70%), val (10%), test (20%) samples as (N, 2) where N is % of 100,000 points
+    Returns train (65%), val (15%), test (20%) samples as (N, 2) where N is % of 100,000 points
     """
-    distribution_flat = np.ravel(distribution)
     n_samples = 100000
+    samples = get_2d_distribution_samples(distribution, n_samples)
+    return samples[:int(n_samples * pct_train)], samples[int(n_samples * pct_train):int(n_samples * (pct_train+pct_val))], \
+           samples[int(n_samples * (pct_train+pct_val)):]
+
+
+def get_2d_distribution_samples(distribution, n_samples):
+    distribution_flat = np.ravel(distribution)
     sample_flat = tfp.distributions.Categorical(probs=distribution_flat).sample((n_samples,))
     samples = np.array(np.unravel_index(sample_flat, distribution.shape)).T
-    return samples[:int(n_samples * 0.7)], samples[int(n_samples * 0.7):int(n_samples * 0.8)], \
-           samples[int(n_samples * 0.8):]
+    return samples
 
 
-def plot_samples(samples):
+def plot_samples(samples, title):
     samples_cum = np.zeros((200, 200))
     for s in samples:
         samples_cum[s[0], s[1]] += 1
-    plot_distribution_heatmap(samples_cum / len(samples))
+    plot_distribution_heatmap(samples_cum / len(samples), title)
 
 
 def get_batch(X, bs):
@@ -51,25 +57,32 @@ class TrainingLogger:
         self._val = []
 
     def add(self, i, train, val):
-        print("{:>10}: Train: {:>10.3f}, Val: {:>10.3f}".format(i, train, val))
+        """
+        i - iteration
+        train, val - set log probabilities in bits per dimension
+        """
+        print("{:>10}: Train: {:<10.3f}, Val: {:<10.3f}".format(i, train, val))
         self._i.append(i)
         self._train.append(train)
         self._val.append(val)
 
     def plot(self, test_set_logprob):
+        """
+        Give test set sum of negative log likelihoods divided by number of dimensions
+        for log probability in bits per dimension
+        """
         plt.plot(self._i, self._train, label="Train")
         plt.plot(self._i, self._val, label="Validation")
         plt.axhline(y=test_set_logprob, label="Test set", linestyle="--", color="g")
         plt.legend()
         plt.title("Train and Validation Log Probs during learning")
         plt.xlabel("# epochs")
-        plt.ylabel("Log prob (bits)")
+        plt.ylabel("Log prob (bits per dimension)")
         plt.savefig("figures/train.svg")
         plt.show()
 
 
-def run_model(model, X_train, X_val):
-    training_logger = TrainingLogger()
+def train_model(X_train, X_val, model, training_logger):
     for i in range(1001):
         logprob = model.train_step(get_batch(X_train, 10000))
         if i % 100 == 0:
@@ -77,13 +90,28 @@ def run_model(model, X_train, X_val):
             training_logger.add(i, logprob, val_logprob)
 
 
+def eval_model(model, X_test, training_logger):
+    probs = model.get_probs()
+    samples = get_2d_distribution_samples(probs, 10000)
+    plot_distribution_heatmap(probs, "{} distribution".format(model.name))
+    plot_samples(samples, "{} samples".format(model.name))
+    test_logprob = model.sum_logprob(model.forward(X_test))
+    training_logger.plot(test_logprob)
+
+
+def model_main(model, X_train, X_val):
+    training_logger = TrainingLogger()
+    train_model(X_train, X_val, model, training_logger)
+    eval_model(model, X_test, training_logger)
+
+
 if __name__ == "__main__":
     # get data
     distribution = load_distribution()
-    # plot_distribution_heatmap(distribution)
-    X_train, X_val, X_test = sample_distribution(distribution)
-    # plot_samples(X_train)
+    # plot_distribution_heatmap(distribution, "True distribution")
+    X_train, X_val, X_test = get_dataset(distribution)
+    # plot_samples(X_train, "Data distribution samples")
 
     # mlp model
-    run_model(MLP_Model(), X_train, X_val)
+    model_main(MLP_Model(), X_train, X_val)
 
