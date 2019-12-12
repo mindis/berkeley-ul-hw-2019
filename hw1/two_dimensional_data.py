@@ -3,7 +3,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import tensorflow_probability as tfp
-from mlp_model import MLP_Model
+from mlp_model import MLPModel
+from MADE import MADE
 
 """
 distribution: 2D array where (i, j) is p(x1 = i, x2 = j)
@@ -16,6 +17,7 @@ def load_distribution():
 def plot_distribution_heatmap(data, title):
     sns.heatmap(data)
     plt.title(title)
+    plt.savefig("figures/1_2/{}".format(title))
     plt.show()
 
 
@@ -51,10 +53,11 @@ def get_batch(X, bs):
 
 
 class TrainingLogger:
-    def __init__(self):
+    def __init__(self, model_name):
         self._i = []
         self._train = []
         self._val = []
+        self.model_name = model_name
 
     def add(self, i, train, val):
         """
@@ -78,7 +81,7 @@ class TrainingLogger:
         plt.title("Train and Validation Log Probs during learning")
         plt.xlabel("# epochs")
         plt.ylabel("Log prob (bits per dimension)")
-        plt.savefig("figures/train.svg")
+        plt.savefig("figures/1_2/{}-train.svg".format(self.model_name))
         plt.show()
 
 
@@ -92,15 +95,13 @@ def train_model(X_train, X_val, model, training_logger):
 
 def eval_model(model, X_test, training_logger):
     probs = model.get_probs()
-    samples = get_2d_distribution_samples(probs, 10000)
     plot_distribution_heatmap(probs, "{} distribution".format(model.name))
-    plot_samples(samples, "{} samples".format(model.name))
     test_logprob = model.sum_logprob(model.forward(X_test))
-    training_logger.plot(test_logprob)
+    training_logger.plot(float(test_logprob))
 
 
 def model_main(model, X_train, X_val):
-    training_logger = TrainingLogger()
+    training_logger = TrainingLogger(model.name)
     train_model(X_train, X_val, model, training_logger)
     eval_model(model, X_test, training_logger)
 
@@ -113,5 +114,8 @@ if __name__ == "__main__":
     # plot_samples(X_train, "Data distribution samples")
 
     # mlp model
-    model_main(MLP_Model(), X_train, X_val)
+    model_main(MLPModel(), X_train, X_val)
+
+    # mlp model
+    # model_main(MADE(), X_train, X_val)
 

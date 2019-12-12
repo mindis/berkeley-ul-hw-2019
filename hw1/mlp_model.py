@@ -4,7 +4,7 @@ import tensorflow as tf
 from utils import tf_log2, gather_nd
 
 
-class FC_Model(tf.keras.Model):
+class FCModel(tf.keras.Model):
     def __init__(self, N, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model = tf.keras.Sequential()
@@ -20,16 +20,16 @@ class FC_Model(tf.keras.Model):
         return out
 
 
-class MLP_Model:
+class MLPModel:
     def __init__(self):
-        self.name = "MLP Model"
+        self.name = "MLP"
         self.N = 200
         self.setup_model()
         self.optimizer = tf.optimizers.Adam()
 
     def setup_model(self):
         self.px1_theta = tf.Variable(np.zeros(self.N), dtype=tf.float32)
-        self.x2 = FC_Model(self.N)
+        self.x2 = FCModel(self.N)
         # self.x2.build((None, 1))
         self.x2.build((None, self.N))
         self.trainable_variables = [self.px1_theta] + self.x2.trainable_variables
@@ -48,7 +48,7 @@ class MLP_Model:
         """
         MLE in bits per dimension
         """
-        return tf.reduce_mean(-tf_log2(probs)) / 2
+        return tf.reduce_mean(-tf_log2(probs)) / 2.
 
     def train_step(self, X_train):
         with tf.GradientTape() as tape:
