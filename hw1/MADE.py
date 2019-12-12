@@ -118,7 +118,7 @@ class MADE:
         self.N = 200
         self.D = 2
         self.setup_model()
-        self.optimizer = tf.optimizers.Adam(learning_rate=0.1)
+        self.optimizer = tf.optimizers.Adam()
 
     def setup_model(self):
         """

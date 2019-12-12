@@ -86,15 +86,11 @@ class TrainingLogger:
 
 
 def train_model(X_train, X_val, model, training_logger):
-    for i in range(501):
+    for i in range(1001):
         logprob = model.train_step(get_batch(X_train, 10000))
         if i % 100 == 0:
             val_logprob = model.eval(X_val)
             training_logger.add(i, logprob, val_logprob)
-
-            # TODO: debug, remove
-            if i != 0:
-                eval_model(model, X_test, training_logger)
 
 
 def eval_model(model, X_test, training_logger):
@@ -119,12 +115,12 @@ if __name__ == "__main__":
 
     # get data
     distribution = load_distribution()
-    # plot_distribution_heatmap(distribution, "True distribution")
+    plot_distribution_heatmap(distribution, "True distribution")
     X_train, X_val, X_test = get_dataset(distribution)
-    # plot_samples(X_train, "Data distribution samples")
+    plot_samples(X_train, "Data distribution samples")
 
     # mlp model
-    # model_main(MLPModel(), X_train, X_val)
+    model_main(MLPModel(), X_train, X_val)
 
     # mlp model
     model_main(MADE(), X_train, X_val)
