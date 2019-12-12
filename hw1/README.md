@@ -30,3 +30,13 @@ See figures/1_2 for plots.
 
 Both seem to overfit. 
 But both have empirical distributions that match the training distribution.
+
+
+### 3. High-Dimensional Data
+
+See:
+
+```
+high_dimensional_data.py
+pixelCNN.py
+```
