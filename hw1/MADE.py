@@ -4,14 +4,15 @@ import tensorflow as tf
 from utils import tf_log2, gather_nd
 
 
-def sample_unit_numbers(n_units, n_random_vars, seed=100):
+def sample_unit_numbers(n_units, min_n, n_random_vars, seed=100):
     """
     Sample each unit's number (the max number of inputs) from 1 to D-1 where D is the number of
     random variables in the outputs of the whole model.
     n_units in this layer
+    min_n is the lowest number to use, avoids disconnected units
     """
     np.random.seed(seed)
-    return np.random.randint(1, n_random_vars+1, size=n_units)
+    return np.random.randint(min_n, n_random_vars+1, size=n_units)
 
 
 def get_mask_made(prev_unit_numbers, unit_numbers):
@@ -42,7 +43,7 @@ class MADELayer(tf.keras.layers.Layer):
         self.units = n_units
         self.prev_unit_numbers = prev_unit_numbers
         if unit_numbers is None:
-            unit_numbers = sample_unit_numbers(self.units, n_random_vars)
+            unit_numbers = sample_unit_numbers(self.units, np.min(prev_unit_numbers), n_random_vars)
         self.unit_numbers = unit_numbers
         # settings
         self.activation = tf.keras.activations.get(activation)
@@ -99,7 +100,8 @@ class MADEModel(tf.keras.Model):
         self.layer1 = MADELayer(64, unit_numbers, self.D)
         self.layer2 = MADELayer(64, self.layer1.unit_numbers, self.D)
         # N * D outputs
-        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=unit_numbers,
+        # -1 because the output layer is a strict inequality
+        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=unit_numbers - 1,
                                       activation=None)
         super().build(input_shape)
 
@@ -116,7 +118,7 @@ class MADE:
         self.N = 200
         self.D = 2
         self.setup_model()
-        self.optimizer = tf.optimizers.Adam(learning_rate=0.001)
+        self.optimizer = tf.optimizers.Adam(learning_rate=0.1)
 
     def setup_model(self):
         """
@@ -138,9 +140,6 @@ class MADE:
         # softmax and gather units of interest
         px1s = tf.nn.softmax(x1_outputs)
         px1 = gather_nd(px1s, x[:, 0])
-
-        tf.print(px1s[0])
-
         px2_given_x1s = tf.nn.softmax(x2_outputs)
         px2_given_x1 = gather_nd(px2_given_x1s, x[:, 1])
         # joints is p(x2|x1)p(x1)
@@ -172,7 +171,6 @@ class MADE:
         """
         probs_flat = np.squeeze(self.forward(self.get_xs()))
         probs = probs_flat.reshape((200, 200))
-        print(np.sum(probs))
         return probs
 
     def get_xs(self):
@@ -185,9 +183,17 @@ class MADE:
 
 
 def test_masks():
-    units = sample_unit_numbers(5, 3)
+    # copy of example in paper, note these will be transposed here to match paper
+    units = np.array([3, 1, 2])
+    hidden_units1 = np.array([2, 1, 2, 2])
+    hidden_units2 = np.array([1, 2, 2, 1])
     print(units)
-    print(get_mask_made(np.arange(3) + 1, units))
+    print(get_mask_made(units, hidden_units1).T)
+    print(hidden_units1)
+    print(get_mask_made(hidden_units1, hidden_units2).T)
+    print(hidden_units1)
+    # -1 because the output layer is a strict inequality
+    print(get_mask_made(hidden_units2, units - 1).T)
 
 
 if __name__ == "__main__":

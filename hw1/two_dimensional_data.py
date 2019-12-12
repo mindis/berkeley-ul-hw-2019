@@ -91,7 +91,10 @@ def train_model(X_train, X_val, model, training_logger):
         if i % 100 == 0:
             val_logprob = model.eval(X_val)
             training_logger.add(i, logprob, val_logprob)
-            eval_model(model, X_test, training_logger)
+
+            # TODO: debug, remove
+            if i != 0:
+                eval_model(model, X_test, training_logger)
 
 
 def eval_model(model, X_test, training_logger):
