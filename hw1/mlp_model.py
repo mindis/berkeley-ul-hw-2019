@@ -8,9 +8,7 @@ class FCModel(tf.keras.Model):
     def __init__(self, N, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model = tf.keras.Sequential()
-        self.model.add(tf.keras.layers.Dense(64, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.01)))
-        self.model.add(tf.keras.layers.Dense(128, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.01)))
-        self.model.add(tf.keras.layers.Dense(64, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.01)))
+        self.model.add(tf.keras.layers.Dense(64, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(0.1)))
         # output layer
         self.model.add(tf.keras.layers.Dense(N))
         self.model.add(tf.keras.layers.Softmax())

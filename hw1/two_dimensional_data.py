@@ -32,9 +32,9 @@ def get_dataset(distribution, pct_train=0.65, pct_val=0.15):
            samples[int(n_samples * (pct_train+pct_val)):]
 
 
-def get_2d_distribution_samples(distribution, n_samples):
+def get_2d_distribution_samples(distribution, n_samples, seed=100):
     distribution_flat = np.ravel(distribution)
-    sample_flat = tfp.distributions.Categorical(probs=distribution_flat).sample((n_samples,))
+    sample_flat = tfp.distributions.Categorical(probs=distribution_flat).sample((n_samples,), seed=seed)
     samples = np.array(np.unravel_index(sample_flat, distribution.shape)).T
     return samples
 
@@ -79,23 +79,24 @@ class TrainingLogger:
         plt.axhline(y=test_set_logprob, label="Test set", linestyle="--", color="g")
         plt.legend()
         plt.title("Train and Validation Log Probs during learning")
-        plt.xlabel("# epochs")
+        plt.xlabel("# iterations")
         plt.ylabel("Log prob (bits per dimension)")
         plt.savefig("figures/1_2/{}-train.svg".format(self.model_name))
         plt.show()
 
 
 def train_model(X_train, X_val, model, training_logger):
-    for i in range(1001):
+    for i in range(501):
         logprob = model.train_step(get_batch(X_train, 10000))
         if i % 100 == 0:
             val_logprob = model.eval(X_val)
             training_logger.add(i, logprob, val_logprob)
+            eval_model(model, X_test, training_logger)
 
 
 def eval_model(model, X_test, training_logger):
     probs = model.get_probs()
-    plot_distribution_heatmap(probs, "{} distribution".format(model.name))
+    plot_distribution_heatmap(probs, "{}-distribution".format(model.name))
     test_logprob = model.sum_logprob(model.forward(X_test))
     training_logger.plot(float(test_logprob))
 
@@ -106,7 +107,13 @@ def model_main(model, X_train, X_val):
     eval_model(model, X_test, training_logger)
 
 
+def set_seed(seed=100):
+    np.random.seed(seed)
+
+
 if __name__ == "__main__":
+    set_seed()
+
     # get data
     distribution = load_distribution()
     # plot_distribution_heatmap(distribution, "True distribution")
@@ -114,8 +121,8 @@ if __name__ == "__main__":
     # plot_samples(X_train, "Data distribution samples")
 
     # mlp model
-    model_main(MLPModel(), X_train, X_val)
+    # model_main(MLPModel(), X_train, X_val)
 
     # mlp model
-    # model_main(MADE(), X_train, X_val)
+    model_main(MADE(), X_train, X_val)
 

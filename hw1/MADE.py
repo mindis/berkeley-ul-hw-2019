@@ -4,12 +4,13 @@ import tensorflow as tf
 from utils import tf_log2, gather_nd
 
 
-def sample_unit_numbers(n_units, n_random_vars):
+def sample_unit_numbers(n_units, n_random_vars, seed=100):
     """
     Sample each unit's number (the max number of inputs) from 1 to D-1 where D is the number of
     random variables in the outputs of the whole model.
     n_units in this layer
     """
+    np.random.seed(seed)
     return np.random.randint(1, n_random_vars+1, size=n_units)
 
 
@@ -79,25 +80,32 @@ class MADELayer(tf.keras.layers.Layer):
 
 
 class MADEModel(tf.keras.Model):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, D, N, *args, **kwargs):
+        """
+        D is the number of variables.
+        N is the number of values for this variable, so each of the D variables can take on
+        values [0, N-1] for N possible values.
+        eg. x1, x2 both [0, 9], D = 2, N = 10
+        Because we extend to non-binary, multiple inputs/outputs can be for the same
+        output variable (for one-hot/softmax).
+        """
         super().__init__(*args, **kwargs)
+        self.D = D
+        self.N = N
 
     def build(self, input_shape, **kwargs):
-        # N is the number of variables we are modelling this is the number of inputs and number of outputs
-        N = input_shape[-1]
-        # we use initial and output unit numbers on inputs as a standard 1, 2, ..., N ordering
-        unit_numbers = np.arange(1, N+1)
-        self.layer1 = MADELayer(64, unit_numbers, N)
-        self.layer2 = MADELayer(128, self.layer1.unit_numbers, N)
-        self.layer3 = MADELayer(64, self.layer2.unit_numbers, N)
-        self.output_layer = MADELayer(N, self.layer3.unit_numbers, N, unit_numbers=unit_numbers,
+        # initial ordering is 1,1,1 ... N times then 2, 2, 2... N times, until D, D, D... N times
+        unit_numbers = np.concatenate([np.ones(self.N) * (i+1) for i in range(self.D)])
+        self.layer1 = MADELayer(64, unit_numbers, self.D)
+        self.layer2 = MADELayer(64, self.layer1.unit_numbers, self.D)
+        # N * D outputs
+        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=unit_numbers,
                                       activation=None)
         super().build(input_shape)
 
     def call(self, inputs, training=None, mask=None):
         x = self.layer1(inputs)
         x = self.layer2(x)
-        x = self.layer3(x)
         x = self.output_layer(x)
         return x
 
@@ -108,14 +116,15 @@ class MADE:
         self.N = 200
         self.D = 2
         self.setup_model()
-        self.optimizer = tf.optimizers.Adam()
+        self.optimizer = tf.optimizers.Adam(learning_rate=0.001)
 
     def setup_model(self):
         """
-        We have D variables (usually 2) which can take N values x1,1...x1,N and x2,1...x2,N ... xD,1...xD,N
-        So we MADE with D * N input and output units that we then separately softmax to get the D output probabilities
+        We have D variables (usually 2) which can take N values.
+        So we MADE with D * N input and output units but that can only take D MADE unit numbers
+        that we then separately softmax to get the D output probabilities
         """
-        self.model = MADEModel(self.N * self.D)
+        self.model = MADEModel(self.D, self.N)
         self.model.build((None, self.N * self.D))
         self.trainable_variables = self.model.trainable_variables
 
@@ -129,6 +138,9 @@ class MADE:
         # softmax and gather units of interest
         px1s = tf.nn.softmax(x1_outputs)
         px1 = gather_nd(px1s, x[:, 0])
+
+        tf.print(px1s[0])
+
         px2_given_x1s = tf.nn.softmax(x2_outputs)
         px2_given_x1 = gather_nd(px2_given_x1s, x[:, 1])
         # joints is p(x2|x1)p(x1)
@@ -160,6 +172,7 @@ class MADE:
         """
         probs_flat = np.squeeze(self.forward(self.get_xs()))
         probs = probs_flat.reshape((200, 200))
+        print(np.sum(probs))
         return probs
 
     def get_xs(self):
@@ -171,9 +184,11 @@ class MADE:
         return xs
 
 
-if __name__ == "__main__":
-    # test masks
-    np.random.seed(1)
+def test_masks():
     units = sample_unit_numbers(5, 3)
     print(units)
     print(get_mask_made(np.arange(3) + 1, units))
+
+
+if __name__ == "__main__":
+    test_masks()
