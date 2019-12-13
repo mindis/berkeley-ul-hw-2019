@@ -142,7 +142,7 @@ class PixelCNN:
     def sum_logprob(self, probs):
         """
         probs are outputs of forward model
-        Returns mean log prob over x (a scalar)
+        Returns mean *negative* log prob (likelihood) over x (a scalar)
         Autoregressive over space, ie. decomposes into a product over pixels conditioned on previous ones in ordering
         Here we further assume that it factorizes into product over channels
         """
@@ -152,7 +152,7 @@ class PixelCNN:
         n_examples = tf.cast(tf.shape(probs)[0], tf.float32)
         n_dimensions = tf.cast(self.H * self.W * self.C, tf.float32)
         logprob = tf.reduce_sum(tf_log2(probs)) / (n_examples * n_dimensions)
-        return logprob
+        return -logprob
 
     def forward(self, x):
         """
@@ -177,10 +177,10 @@ class PixelCNN:
         Takes batch of data X_train
         """
         with tf.GradientTape() as tape:
-            neg_logprob = -self.eval(X_train)
-        grads = tape.gradient(neg_logprob, self.model.trainable_variables)
+            logprob = self.eval(X_train)
+        grads = tape.gradient(logprob, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-        return neg_logprob
+        return logprob
 
     def eval_batch(self, X, bs=64):
         """
@@ -196,7 +196,7 @@ class PixelCNN:
             # add batch dimension
             extra_data = [extra_data]
         logprobs.append(self.eval(extra_data))
-        return tf.reduce_mean(logprobs)
+        return tf.mean(logprobs)
 
     def eval(self, X):
         preds = self.forward(X)
