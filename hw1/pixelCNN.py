@@ -177,10 +177,10 @@ class PixelCNN:
         Takes batch of data X_train
         """
         with tf.GradientTape() as tape:
-            logprob = self.eval(X_train)
-        grads = tape.gradient(logprob, self.model.trainable_variables)
+            neg_logprob = -self.eval(X_train)
+        grads = tape.gradient(neg_logprob, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-        return logprob
+        return neg_logprob
 
     def eval_batch(self, X, bs=64):
         """

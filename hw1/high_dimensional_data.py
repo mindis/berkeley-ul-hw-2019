@@ -20,7 +20,8 @@ def train_model(X_train, X_val, model, training_logger):
         batch = get_batch(X_train, bs)
         logprob = model.train_step(batch)
         if i % 100 == 0:
-            val_logprob = model.eval_batch(X_val)
+            # TODO: use full val data
+            val_logprob = model.eval_batch(X_val[:bs*4])
             training_logger.add(i, logprob, val_logprob)
 
 
