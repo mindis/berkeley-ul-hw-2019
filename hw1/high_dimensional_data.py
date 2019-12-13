@@ -14,22 +14,25 @@ def set_seed(seed=100):
 
 
 def train_model(X_train, X_val, model, training_logger):
-    n_iters = 1001
+    n_iters = 10001
+    bs = 64
     for i in range(n_iters):
-        logprob = model.train_step(get_batch(X_train, 1000))
+        batch = get_batch(X_train, bs)
+        logprob = model.train_step(batch)
         if i % 100 == 0:
-            val_logprob = model.eval(X_val)
+            val_logprob = model.eval_batch(X_val)
             training_logger.add(i, logprob, val_logprob)
 
 
 def eval_model(model, X_test, training_logger):
-    test_logprob = model.sum_logprob(model.forward(X_test))
+    test_logprob = model.eval_batch(X_test)
     training_logger.plot(float(test_logprob))
 
 
 def model_main(model, X_train, X_val, X_test):
     training_logger = TrainingLogger(model.name)
     train_model(X_train, X_val, model, training_logger)
+    eval_model(model, X_test, training_logger)
 
 
 if __name__ == "__main__":

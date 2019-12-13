@@ -103,7 +103,7 @@ class PixelCNNModel(tf.keras.Model):
 
     def build(self, input_shape, **kwargs):
         self.layer1 = MaskedCNN(self.n_filters, 7, True)
-        self.res_layers = [MaskedResidualBlock(self.n_filters) for _ in range(12)]
+        self.res_layers = [MaskedResidualBlock(self.n_filters) for _ in range(6)]
         self.conv1x1 = [MaskedCNN(self.n_filters, 1, False) for _ in range(2)]
         self.output_conv = MaskedCNN(self.output_size * self.output_channels, 1, False)
         self.softmax = tf.keras.layers.Softmax()
@@ -173,11 +173,30 @@ class PixelCNN:
         return probs
 
     def train_step(self, X_train):
+        """
+        Takes batch of data X_train
+        """
         with tf.GradientTape() as tape:
-            logprob = eval(X_train)
+            logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob
+
+    def eval_batch(self, X, bs=64):
+        """
+        computes forward pass then logprob on the outputs
+        X is batched in to handle large data
+        note this
+        """
+        logprobs = []
+        for i in range(len(X) // bs):
+            logprobs.append(self.eval(X[i * bs: (i + 1) * bs]))
+        extra_data = X[len(X) // bs:]
+        if len(extra_data) == 1:
+            # add batch dimension
+            extra_data = [extra_data]
+        logprobs.append(self.eval(extra_data))
+        return tf.reduce_mean(logprobs)
 
     def eval(self, X):
         preds = self.forward(X)
