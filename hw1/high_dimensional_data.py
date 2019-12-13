@@ -18,3 +18,7 @@ if __name__ == "__main__":
     # get data
     X_train, X_val, X_test = load_data()
     # display_image_grid(X_train[:9], "Training-Data")
+
+    # 1st let's try get the forward model working
+    pixelcnn = PixelCNN()
+    print(pixelcnn.forward(X_train[:10]))

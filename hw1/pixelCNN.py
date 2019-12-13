@@ -7,6 +7,8 @@ from utils import tf_log2, gather_nd
 
 def get_pixelcnn_mask(this_filters_shape, cur_pixel, isTypeA, n_channels=3):
     """
+    raster ordering on conditioning
+
     this_filters_shape define the layer sizes
     isTypeA: bool, true if type A mask, otherwise type B mask used.
     Type A takes context and previous channels (but not its own channel)
@@ -56,6 +58,7 @@ class MaskedCNN(tf.keras.layers.Layer):
                  kernel_size,
                  isTypeA,
                  strides=1,
+                 padding="SAME",
                  activation="relu",
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
@@ -79,10 +82,12 @@ class MaskedCNN(tf.keras.layers.Layer):
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer),
             **kwargs)
         self.filters = filters
+        if isinstance(kernel_size, int):
+            kernel_size = (kernel_size, kernel_size)
         self.kernel_size = kernel_size
         self.strides = strides
         # TODO: we must use same padding?
-        self.padding = "SAME"
+        self.padding = padding
         self.activation = tf.keras.activations.get(activation)
         self.use_bias = use_bias
         self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
@@ -94,10 +99,9 @@ class MaskedCNN(tf.keras.layers.Layer):
         self.isTypeA = isTypeA
 
     def build(self, input_shape):
-        if input_shape.dims[-1].value is None:
-            raise ValueError('The channel dimension of the inputs '
-                             'should be defined. Found `None`.')
-        input_dim = int(input_shape[-1])
+        # first arg is the image input
+        print(input_shape)
+        input_dim = int(input_shape[0][-1])
         self.kernel_shape = self.kernel_size + (input_dim, self.filters)
         self.kernel = self.add_weight(
             name='kernel',
@@ -126,12 +130,14 @@ class MaskedCNN(tf.keras.layers.Layer):
         mask = get_pixelcnn_mask(self.kernel_shape, cur_pixel, self.isTypeA)
         masked_kernel = mask * self.kernel
         # TODO: dilation and/or data_format?
-        conv_outputs = tf.nn.conv2d(img, masked_kernel, strides=self.strides, padding=self.padding)
+        print(tf.shape(masked_kernel))
+        print(tf.shape(img))
+        conv_outputs = tf.nn.conv2d(tf.cast(img, tf.float32), masked_kernel, strides=self.strides, padding=self.padding)
         conv_outputs += self.bias
         return self.activation(conv_outputs)
 
 
-class MaskedResidualBlock(tf.keras.Layer):
+class MaskedResidualBlock(tf.keras.layers.Layer):
     def __init__(self, n_filters):
         super().__init__()
         self.n_filters = n_filters
@@ -142,15 +148,15 @@ class MaskedResidualBlock(tf.keras.Layer):
         self.layer2 = MaskedCNN(self.n_filters, 3, False, activation="relu")
         self.layer3 = MaskedCNN(self.n_filters, 1, False, activation="relu")
 
-    def call(self, x):
+    def call(self, inputs):
         """
         x is the inputs, [image, (cx, cy)]
         """
-        img, _ = x
+        img, cur_pix = inputs
         # other layers take img and cur pixel location
-        x = self.layer1(x)
-        x = self.layer2(x)
-        res_path = self.layer3(x)
+        x = self.layer1(inputs)
+        x = self.layer2([x, cur_pix])
+        res_path = self.layer3([x, cur_pix])
         return img + res_path
 
 
@@ -162,26 +168,55 @@ class PixelCNNModel(tf.keras.Model):
     def build(self, input_shape, **kwargs):
         self.layer1 = MaskedCNN(128, 7, True)
         self.res_layers = [MaskedResidualBlock(128)] * 12
-        self.conv1x1 = [MaskedCNN(self.output_size, 1, False)] * 2
+        self.conv1x1 = [MaskedCNN(4, 1, False)] * 2
         self.output_layer = tf.keras.layers.Softmax()
-        super().build(input_shape)
 
     def call(self, inputs, training=None, mask=None):
+        img, cur_pix = inputs
         x = self.layer1(inputs)
         for layer in self.res_layers:
-            x = layer(x)
+            x = layer([x, cur_pix])
         for layer in self.conv1x1:
-            x = layer(x)
+            x = layer([x, cur_pix])
+        # output layer softmax only takes x
         x = self.output_layer(x)
         return x
 
 
 class PixelCNN:
-    def __init__(self):
-        pass
+    def __init__(self, H=28, W=28, C=3):
+        """
+        H, W, C image shape: height, width, channels
+        """
+        self.H = H
+        self.W = W
+        self.C = C
+        self.setup_model()
 
     def setup_model(self):
         self.model = PixelCNNModel()
+
+    def forward_logprob(self, x):
+        """
+        Autoregressive over space, ie. decomposes into a product over pixels conditioned on previous ones in ordering
+        Here we further assume that it factorizes into product over channels
+        """
+        logprob = 0
+        # raster ordering
+        for h in range(self.H):
+            for w in range(self.W):
+                for c in range(self.C):
+                    # TODO: how to factorise over channels
+                    # prob is output for the unit corresponding to value of this pixel
+                    model_outputs = self.model([x, (h, w)])
+                    print(model_outputs)
+                    probs = tf.gather_nd(model_outputs, x[:, h, w, c])
+                    logprob += tf_log2(probs)
+        return logprob
+
+    def forward(self, x):
+        logprob = self.forward_logprob(x)
+        return tf.pow(2, logprob)
 
 
 def plot_image(image, title, n_vals=3):
