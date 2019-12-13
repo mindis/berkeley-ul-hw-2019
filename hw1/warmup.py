@@ -82,7 +82,7 @@ def train(X_train, X_val, model, train_log):
 
 
 def plot_model(model):
-    all_probs, samples = model.get_probs()
+    all_probs, samples = model.get_probs_and_samples()
     plt.bar(model.get_xs(), all_probs)
     plt.title("Model probabilities over x")
     plt.xscale("linear", base=10)

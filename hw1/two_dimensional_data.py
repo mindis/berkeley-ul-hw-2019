@@ -1,10 +1,10 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import tensorflow as tf
 import tensorflow_probability as tfp
 from mlp_model import MLPModel
 from MADE import MADE
+from utils import get_batch, TrainingLogger
 
 """
 distribution: 2D array where (i, j) is p(x1 = i, x2 = j)
@@ -46,45 +46,6 @@ def plot_samples(samples, title):
     plot_distribution_heatmap(samples_cum / len(samples), title)
 
 
-def get_batch(X, bs):
-    batch_size = min(len(X) - 1, bs)
-    inds = np.random.choice(np.arange(len(X) - 1), batch_size, replace=False)
-    return X[inds]
-
-
-class TrainingLogger:
-    def __init__(self, model_name):
-        self._i = []
-        self._train = []
-        self._val = []
-        self.model_name = model_name
-
-    def add(self, i, train, val):
-        """
-        i - iteration
-        train, val - set log probabilities in bits per dimension
-        """
-        print("{:>10}: Train: {:<10.3f}, Val: {:<10.3f}".format(i, train, val))
-        self._i.append(i)
-        self._train.append(train)
-        self._val.append(val)
-
-    def plot(self, test_set_logprob):
-        """
-        Give test set sum of negative log likelihoods divided by number of dimensions
-        for log probability in bits per dimension
-        """
-        plt.plot(self._i, self._train, label="Train")
-        plt.plot(self._i, self._val, label="Validation")
-        plt.axhline(y=test_set_logprob, label="Test set", linestyle="--", color="g")
-        plt.legend()
-        plt.title("Train and Validation Log Probs during learning")
-        plt.xlabel("# iterations")
-        plt.ylabel("Log prob (bits per dimension)")
-        plt.savefig("figures/1_2/{}-train.svg".format(self.model_name))
-        plt.show()
-
-
 def train_model(X_train, X_val, model, training_logger):
     for i in range(1001):
         logprob = model.train_step(get_batch(X_train, 10000))
@@ -100,7 +61,7 @@ def eval_model(model, X_test, training_logger):
     training_logger.plot(float(test_logprob))
 
 
-def model_main(model, X_train, X_val):
+def model_main(model, X_train, X_val, X_test):
     training_logger = TrainingLogger(model.name)
     train_model(X_train, X_val, model, training_logger)
     eval_model(model, X_test, training_logger)
@@ -120,8 +81,8 @@ if __name__ == "__main__":
     plot_samples(X_train, "Data distribution samples")
 
     # mlp model
-    model_main(MLPModel(), X_train, X_val)
+    model_main(MLPModel(), X_train, X_val, X_test)
 
     # mlp model
-    model_main(MADE(), X_train, X_val)
+    model_main(MADE(), X_train, X_val, X_test)
 

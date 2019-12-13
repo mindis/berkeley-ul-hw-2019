@@ -150,18 +150,17 @@ class MADE:
         """
         MLE in bits per dimension
         """
-        return tf.reduce_mean(-tf_log2(probs)) / 2.
+        return tf.reduce_mean(-tf_log2(probs)) / tf.cast(self.D, tf.float32)
 
     def train_step(self, X_train):
         with tf.GradientTape() as tape:
-            preds = self.forward(X_train)
-            logprob = self.sum_logprob(preds)
+            logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
         return logprob
 
-    def eval(self, X_test):
-        preds = self.forward(X_test)
+    def eval(self, X):
+        preds = self.forward(X)
         logprob = self.sum_logprob(preds)
         return logprob
 
