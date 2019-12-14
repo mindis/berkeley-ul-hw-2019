@@ -14,7 +14,7 @@ def set_seed(seed=100):
 
 
 def train_model(X_train, X_val, model, training_logger):
-    n_iters = 10001
+    n_iters = 2001
     bs = 128
     for i in range(n_iters):
         batch = get_batch(X_train, bs)
@@ -34,7 +34,7 @@ def eval_model(model, X_test, training_logger):
 
 def model_main(model, X_train, X_val, X_test):
     training_logger = TrainingLogger(model.name)
-    # train_model(X_train, X_val, model, training_logger)
+    train_model(X_train, X_val, model, training_logger)
     eval_model(model, X_test, training_logger)
 
 
