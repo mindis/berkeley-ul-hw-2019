@@ -15,7 +15,7 @@ def set_seed(seed=100):
 
 def train_model(X_train, X_val, model, training_logger):
     n_iters = 10001
-    bs = 64
+    bs = 128
     for i in range(n_iters):
         batch = get_batch(X_train, bs)
         logprob = model.train_step(batch)
@@ -26,13 +26,15 @@ def train_model(X_train, X_val, model, training_logger):
 
 
 def eval_model(model, X_test, training_logger):
+    samples = model.get_samples(100)
+    display_image_grid(samples, "Samples from PixelCNN")
     test_logprob = model.eval_batch(X_test)
     training_logger.plot(float(test_logprob))
 
 
 def model_main(model, X_train, X_val, X_test):
     training_logger = TrainingLogger(model.name)
-    train_model(X_train, X_val, model, training_logger)
+    # train_model(X_train, X_val, model, training_logger)
     eval_model(model, X_test, training_logger)
 
 

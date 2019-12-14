@@ -53,7 +53,7 @@ def mask_centre(cur_pixel, isTypeA, mask, n_channels):
             elif i > j:
                 mask[cur_pixel[0], cur_pixel[1], i::n_channels, j::n_channels] = 0
 
-# TODO: try and overwrite minimal code from conv2d
+
 class MaskedCNN(tf.keras.layers.Conv2D):
     def __init__(self, n_filters, kernel_size, isTypeA, **kwargs):
         """
@@ -129,7 +129,7 @@ class PixelCNN:
         n_vals the number of values each channel can take on
         """
         self.name = "PixelCNN"
-        self.optimizer = tf.optimizers.Adam()
+        self.optimizer = tf.optimizers.Adam(learning_rate=10e-3)
         self.H = H
         self.W = W
         self.C = C
@@ -154,15 +154,12 @@ class PixelCNN:
         logprob = tf.reduce_sum(tf_log2(probs)) / (n_examples * n_dimensions)
         return -logprob
 
-    def forward(self, x):
+    def forward_gather(self, x):
         """
-        Forward pass in model to image shape (N, H, W, C) where elements are probs of corresponding input value.
+        Forward pass returning (N, H, W, C) where elements are probs of
+        corresponding input value.
         """
-        # prob is output for the unit corresponding to value of this pixel
-        x = tf.cast(x, tf.int32)
-        # model outputs softmax (N, H * W * C, N_V) where N is number of data in batch, Height, Width, Channels of image
-        # and N_V is number of values each channel can take
-        model_outputs = self.model(x)
+        model_outputs = self.forward(x)
         # we flatten the softmax, gather the corresponding probs to the input values for each channel input in x.
         # flatten to (h x w x c, n_vals (=4)) then softmax then flatten image to loss.
         N = tf.shape(x)[0]
@@ -171,6 +168,19 @@ class PixelCNN:
         # reshape back to image shape for probs
         probs = tf.reshape(probs_flat, (N, self.H, self.W, self.C))
         return probs
+
+    def forward(self, x):
+        """
+        Forward pass returning full (flat) probability values (N, H * W * C, N_V)
+        where N_V is number of values each channel can take. ie this gives the
+        output of the softmax
+        """
+        # prob is output for the unit corresponding to value of this pixel
+        x = tf.cast(x, tf.int32)
+        # model outputs softmax (N, H * W * C, N_V) where N is number of data in batch, Height, Width, Channels of image
+        # and N_V is number of values each channel can take
+        model_outputs = self.model(x)
+        return model_outputs
 
     def train_step(self, X_train):
         """
@@ -182,7 +192,7 @@ class PixelCNN:
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob
 
-    def eval_batch(self, X, bs=64):
+    def eval_batch(self, X, bs=128):
         """
         computes forward pass then logprob on the outputs
         X is batched in to handle large data
@@ -196,12 +206,39 @@ class PixelCNN:
             # add batch dimension
             extra_data = [extra_data]
         logprobs.append(self.eval(extra_data))
-        return tf.mean(logprobs)
+        return tf.reduce_mean(logprobs)
 
     def eval(self, X):
-        preds = self.forward(X)
+        preds = self.forward_gather(X)
         logprob = self.sum_logprob(preds)
         return logprob
+
+    def reshape_model_outputs(self, probs):
+        """
+        Reshapes softmax output (N, H * W * C, N_V) to image shape
+        (N, H, W, C, N_V) probs
+        """
+        N = tf.shape(probs)[0]
+        return tf.reshape(probs, (N, self.H, self.W, self.C, self.n_vals))
+
+    def forward_argmax(self, X):
+        model_outputs_flat = self.forward(X)
+        model_outputs = self.reshape_model_outputs(model_outputs_flat)
+        return tf.argmax(model_outputs, axis=-1)
+
+    def get_samples(self, n):
+        """
+        Generation is done from blank image (all 0s), we then sample R channel
+        of first pixel, then G then B and then for second pixel etc.
+        We batch this for efficiency.
+        """
+        images = np.zeros((n, self.H, self.W, self.C))
+        for h in range(self.H):
+            for w in range(self.W):
+                for c in range(self.C):
+                    model_preds = self.forward_argmax(images)
+                    images[:, h, w, c] = model_preds[:, h, w, c]
+        return images
 
 
 def plot_image(image, title, n_vals=3):

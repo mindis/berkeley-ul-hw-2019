@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
@@ -36,7 +38,7 @@ class TrainingLogger:
         i - iteration
         train, val - set log probabilities in bits per dimension
         """
-        print("{:>10}: Train: {:<10.3f}, Val: {:<10.3f}".format(i, train, val))
+        print("{} {:>8}:\t Train: {:<6.3f} Val: {:<6.3f}".format(time.strftime("%d %b %Y %H:%M:%S"), i, train, val))
         self._i.append(i)
         self._train.append(train)
         self._val.append(val)
