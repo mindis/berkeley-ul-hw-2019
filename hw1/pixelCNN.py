@@ -159,6 +159,7 @@ class PixelCNN:
         Forward pass returning (N, H, W, C) where elements are probs of
         corresponding input value.
         """
+        x = tf.cast(x, tf.int32)
         model_outputs = self.forward(x)
         # we flatten the softmax, gather the corresponding probs to the input values for each channel input in x.
         # flatten to (h x w x c, n_vals (=4)) then softmax then flatten image to loss.
