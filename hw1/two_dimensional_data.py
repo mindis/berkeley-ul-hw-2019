@@ -62,7 +62,7 @@ def eval_model(model, X_test, training_logger):
 
 
 def model_main(model, X_train, X_val, X_test):
-    training_logger = TrainingLogger(model.name)
+    training_logger = TrainingLogger(model.name, "1_2")
     train_model(X_train, X_val, model, training_logger)
     eval_model(model, X_test, training_logger)
 

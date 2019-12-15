@@ -27,11 +27,12 @@ def get_batch(X, bs):
 
 
 class TrainingLogger:
-    def __init__(self, model_name):
+    def __init__(self, model_name, q):
         self._i = []
         self._train = []
         self._val = []
         self.model_name = model_name
+        self.q = q
 
     def add(self, i, train, val):
         """
@@ -55,5 +56,5 @@ class TrainingLogger:
         plt.title("Train and Validation Log Probs during learning")
         plt.xlabel("# iterations")
         plt.ylabel("Log prob (bits per dimension)")
-        plt.savefig("figures/1_2/{}-train.svg".format(self.model_name))
+        plt.savefig("figures/{}/{}-train.svg".format(self.q, self.model_name))
         plt.show()

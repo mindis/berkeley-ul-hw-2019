@@ -13,27 +13,25 @@ def set_seed(seed=100):
     np.random.seed(seed)
 
 
-def train_model(X_train, X_val, model, training_logger):
-    n_iters = 2001
-    bs = 128
+def train_model(X_train, X_val, model, training_logger, n_iters=2001, bs=128):
     for i in range(n_iters):
         batch = get_batch(X_train, bs)
         logprob = model.train_step(batch)
         if i % 100 == 0:
             # TODO: use full val data
-            val_logprob = model.eval_batch(X_val[:bs*4])
+            val_logprob = model.eval_batch(X_val[:bs*10])
             training_logger.add(i, logprob, val_logprob)
 
 
-def eval_model(model, X_test, training_logger):
+def eval_model(model, X_test, training_logger, bs=128):
     samples = model.get_samples(100)
     display_image_grid(samples, "Samples from PixelCNN")
-    test_logprob = model.eval_batch(X_test)
+    test_logprob = model.eval_batch(X_test[:bs*10])
     training_logger.plot(float(test_logprob))
 
 
 def model_main(model, X_train, X_val, X_test):
-    training_logger = TrainingLogger(model.name)
+    training_logger = TrainingLogger(model.name, "1_3")
     train_model(X_train, X_val, model, training_logger)
     eval_model(model, X_test, training_logger)
 
