@@ -42,7 +42,8 @@ class TrainingLogger:
         plt.xlabel("# epochs")
         plt.ylabel("Log prob (bits)")
         plt.savefig("figures/1_1/train.svg")
-        plt.show()
+        plt.draw()
+        plt.pause(0.001)
 
 
 def plot_data(X):
@@ -50,7 +51,8 @@ def plot_data(X):
     plt.title("Data")
     plt.xscale("linear", base=10)
     plt.savefig("figures/1_1/data.svg")
-    plt.show()
+    plt.draw()
+    plt.pause(0.001)
 
 
 def main():
@@ -89,12 +91,14 @@ def plot_model(model):
     plt.xlabel("x")
     plt.ylabel("Model probability")
     plt.savefig("figures/1_1/prob.svg")
-    plt.show()
+    plt.draw()
+    plt.pause(0.001)
     sns.countplot(samples, color="cyan")
     plt.xscale("linear", base=10)
     plt.title("Samples")
     plt.savefig("figures/1_1/samples.svg")
-    plt.show()
+    plt.draw()
+    plt.pause(0.001)
 
 
 class Model:

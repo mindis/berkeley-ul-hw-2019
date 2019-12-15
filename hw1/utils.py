@@ -57,4 +57,5 @@ class TrainingLogger:
         plt.xlabel("# iterations")
         plt.ylabel("Log prob (bits per dimension)")
         plt.savefig("figures/{}/{}-train.svg".format(self.q, self.model_name))
-        plt.show()
+        plt.draw()
+        plt.pause(0.001)

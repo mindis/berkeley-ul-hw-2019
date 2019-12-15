@@ -18,7 +18,8 @@ def plot_distribution_heatmap(data, title):
     sns.heatmap(data)
     plt.title(title)
     plt.savefig("figures/1_2/{}".format(title))
-    plt.show()
+    plt.draw()
+    plt.pause(0.001)
 
 
 def get_dataset(distribution, pct_train=0.65, pct_val=0.15):
