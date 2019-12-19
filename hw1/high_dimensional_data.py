@@ -38,7 +38,8 @@ def sample_model(model, n):
     display_image_grid(samples, "Samples from PixelCNN")
 
 
-def model_main(model):
+def pixel_cnn_main():
+    model = PixelCNN()
     X_train, X_val, X_test = load_data()
     train_and_eval_main(X_test, X_train, X_val, model)
 
@@ -54,21 +55,35 @@ def debug_data(n_samples=10000, pct_val=0.15, pct_test=0.2):
     Provides a simple dataset that should be easy to learn for debugging model.
     3 channels each 0, 1, 2 or 3, like real data but size 4 x 4 images
     checkerboard with low as 0 or 1 and high as 2 or 3.
+    and some randomly perturbed squares
     """
     pct_train = 1.0 - pct_val - pct_test
     data = []
-    for i in range(n_samples):
-        # sample low and high values
-        low = np.random.choice(np.arange(2), 1)[0]
-        high = np.random.choice(np.arange(2, 4), 1)[0]
-        # 4 x 4 checkerboard
-        x = np.array([[low, high], [high, low]])
-        sample_base = np.tile(x, (2, 2))
-        sample = np.repeat(sample_base[..., None], 3, axis=2)
-        data.append(sample)
-    data = np.array(data)
+    # iterate over all checkerboard patterns
+    for low in range(2):
+        for high in range(2, 4):
+            # 4 x 4 checkerboard
+            x = np.array([[low, high], [high, low]])
+            sample_base = np.tile(x, (2, 2))
+            sample = np.repeat(sample_base[..., None], 3, axis=2)
+            samples = np.repeat(sample[None], n_samples // 4, axis=0)
+            data.append(samples)
+    data = np.vstack(data)
+    # add some randomness
+    rows = np.arange(len(data))
+    inds = np.random.randint(4, size=len(data))
+    channel = np.random.randint(3, size=len(data))
+    change = np.random.choice([1, -1], size=len(data))
+    data[rows, inds, inds, channel] += change
+    np.random.shuffle(data)
     return data[:int(n_samples * pct_train)], data[int(n_samples * pct_train):int(n_samples * (pct_train+pct_val))], \
            data[int(n_samples * (pct_train+pct_val)):]
+
+
+def pixel_cnn_debug():
+    model = PixelCNN(h=4, w=4)
+    X_train, X_val, X_test = debug_data()
+    train_and_eval_main(X_test, X_train, X_val, model)
 
 
 def plot_data():
@@ -83,5 +98,6 @@ if __name__ == "__main__":
 
     # plot_data()
 
-    # pixelcnn = PixelCNN()
-    # model_main(pixelcnn)
+    pixel_cnn_debug()
+
+    # pixel_cnn_main()
