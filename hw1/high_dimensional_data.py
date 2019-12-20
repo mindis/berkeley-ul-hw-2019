@@ -14,11 +14,11 @@ def set_seed(seed=100):
     np.random.seed(seed)
 
 
-def train_model(X_train, X_val, model, training_logger, n_iters=2001, bs=128):
-    for i in range(n_iters):
+def train_model(X_train, X_val, model, training_logger, n_iters=2000, bs=128, log_every=100):
+    for i in range(n_iters+1):
         batch = get_batch(X_train, bs)
         logprob = model.train_step(batch)
-        if i % 100 == 0:
+        if i % log_every == 0:
             # TODO: use full val data
             # get validation performance and add to logs
             val_logprob = model.eval_batch(X_val[:bs*10])
@@ -75,15 +75,25 @@ def debug_data(n_samples=10000, pct_val=0.15, pct_test=0.2):
     channel = np.random.randint(3, size=len(data))
     change = np.random.choice([1, -1], size=len(data))
     data[rows, inds, inds, channel] += change
+    # clip to valid values
+    data = np.clip(data, 0, 3)
     np.random.shuffle(data)
     return data[:int(n_samples * pct_train)], data[int(n_samples * pct_train):int(n_samples * (pct_train+pct_val))], \
            data[int(n_samples * (pct_train+pct_val)):]
 
 
-def pixel_cnn_debug():
-    model = PixelCNN(h=4, w=4)
+def pixel_cnn_debug(one_pattern=False):
+    """
+    one_pattern: if true repeats a single example to debug overfitting to one sample
+    otherwise a sample of perturbed checkerboards are used.
+    """
+    model = PixelCNN(H=4, W=4)
     X_train, X_val, X_test = debug_data()
-    train_and_eval_main(X_test, X_train, X_val, model)
+    if one_pattern:
+        X_train = np.repeat(X_train[0][None], 1000, axis=0)
+        train_and_eval_main(X_train, X_train, X_train, model)
+    else:
+        train_and_eval_main(X_test, X_train, X_val, model)
 
 
 def plot_data():
@@ -94,10 +104,9 @@ def plot_data():
 if __name__ == "__main__":
     set_seed()
 
-    # TODO: run quicker tests on smaller data you generate eg. 4x4, and do L, L flipped and diagonal
-
     # plot_data()
 
-    pixel_cnn_debug()
+    # pixel_cnn_debug()
 
-    # pixel_cnn_main()
+    # TODO: try main!
+    pixel_cnn_main()

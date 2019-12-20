@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import tensorflow_probability as tfp
 from matplotlib import pyplot as plt
 
 from utils import tf_log2, gather_nd
@@ -103,7 +104,7 @@ class PixelCNNModel(tf.keras.Model):
 
     def build(self, input_shape, **kwargs):
         self.layer1 = MaskedCNN(self.n_filters, 7, True)
-        self.res_layers = [MaskedResidualBlock(self.n_filters) for _ in range(6)]
+        self.res_layers = [MaskedResidualBlock(self.n_filters) for _ in range(12)]
         self.conv1x1 = [MaskedCNN(self.n_filters, 1, False) for _ in range(2)]
         self.output_conv = MaskedCNN(self.output_size * self.output_channels, 1, False)
         self.softmax = tf.keras.layers.Softmax()
@@ -118,7 +119,7 @@ class PixelCNNModel(tf.keras.Model):
         x = self.output_conv(x)
         # output layer softmax split into n_channels
         n, h, w, _ = tf.shape(inputs)
-        x = self.softmax(tf.reshape(x, (n, h * w * self.output_channels, self.output_size)))
+        x = self.softmax(tf.reshape(x, (n, h * w, self.output_channels, self.output_size)))
         return x
 
 
@@ -197,7 +198,7 @@ class PixelCNN:
         """
         computes forward pass then logprob on the outputs
         X is batched in to handle large data
-        note this
+        note this returns mean logprob over batch
         """
         logprobs = []
         for i in range(len(X) // bs):
@@ -222,11 +223,6 @@ class PixelCNN:
         N = tf.shape(probs)[0]
         return tf.reshape(probs, (N, self.H, self.W, self.C, self.n_vals))
 
-    def forward_argmax(self, X):
-        model_outputs_flat = self.forward(X)
-        model_outputs = self.reshape_model_outputs(model_outputs_flat)
-        return tf.argmax(model_outputs, axis=-1)
-
     def get_samples(self, n):
         """
         Generation is done from blank image (all 0s), we then sample R channel
@@ -237,8 +233,11 @@ class PixelCNN:
         for h in range(self.H):
             for w in range(self.W):
                 for c in range(self.C):
-                    model_preds = self.forward_argmax(images)
-                    images[:, h, w, c] = model_preds[:, h, w, c]
+                    model_preds_flat = self.forward(images)
+                    model_preds = tf.reshape(model_preds_flat, (n, self.H, self.W, self.C, self.n_vals))
+                    # categorical over pixel values
+                    pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
+                    images[:, h, w, c] = pixel_dist.sample(1)
         return images
 
 
