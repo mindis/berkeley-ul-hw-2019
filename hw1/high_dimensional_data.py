@@ -107,5 +107,5 @@ if __name__ == "__main__":
     # plot_data()
 
     # pixel_cnn_debug()
-
+    #TODO: try incr. lr
     pixel_cnn_main()

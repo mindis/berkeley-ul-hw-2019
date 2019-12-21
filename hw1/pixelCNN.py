@@ -3,7 +3,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from matplotlib import pyplot as plt
 
-from utils import tf_log2, gather_nd
+from utils import tf_log_to_base_n
 
 
 def get_pixelcnn_mask(this_filters_shape, isTypeA, n_channels=3):
@@ -97,6 +97,9 @@ class MaskedResidualBlock(tf.keras.layers.Layer):
 
 
 class PixelCNNModel(tf.keras.Model):
+    """
+    Returns logits for softmax (N, h*w, c, n_vals)
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.output_size = 4
@@ -124,10 +127,11 @@ class PixelCNNModel(tf.keras.Model):
         x = self.output_conv(x)
         # output layer softmax split into n_channels
         n, h, w, _ = tf.shape(inputs)
-        x = self.softmax(tf.reshape(x, (n, h * w, self.output_channels, self.output_size)))
+        x = tf.reshape(x, (n, h * w, self.output_channels, self.output_size))
         return x
 
 
+# eval, eval_batch, train_step, forward, loss, sample
 class PixelCNN:
     def __init__(self, H=28, W=28, C=3, n_vals=4):
         """
@@ -145,57 +149,42 @@ class PixelCNN:
     def setup_model(self):
         self.model = PixelCNNModel()
 
-    def sum_logprob(self, probs):
+    def loss(self, labels, logits):
         """
-        probs are outputs of forward model
+        probs are outputs of forward model, a probability for each image (N, )
         Returns mean *negative* log prob (likelihood) over x (a scalar)
         Autoregressive over space, ie. decomposes into a product over pixels conditioned on previous ones in ordering
-        Here we further assume that it factorizes into product over channels
         """
-        # factorised over channels (multiply) and over masked conditioned input.
-        # in log space this is sum. We also sum logprob over examples, but divid by number of examples to get mean
-        # we also divide by number of dimensions to get bits per dimension
-        n_examples = tf.cast(tf.shape(probs)[0], tf.float32)
-        n_dimensions = tf.cast(self.H * self.W * self.C, tf.float32)
-        logprob = tf.reduce_sum(tf_log2(probs)) / (n_examples * n_dimensions)
-        return -logprob
+        labels = tf.cast(labels, tf.int32)
+        loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits))
+        # get in bits
+        neg_logprob_bit = tf_log_to_base_n(loss, 2)
+        return neg_logprob_bit
 
-    def forward_gather(self, x):
+    def forward_logits(self, x):
         """
-        Forward pass returning (N, H, W, C) where elements are probs of
-        corresponding input value.
+        Forward pass returning full (flat) logits from model (N, H * W, C, N_V)
+        where N_V is number of values each channel can take.
         """
         x = tf.cast(x, tf.int32)
-        model_outputs = self.forward(x)
-        # we flatten the softmax, gather the corresponding probs to the input values for each channel input in x.
-        # flatten to (h x w x c, n_vals (=4)) then softmax then flatten image to loss.
-        N = tf.shape(x)[0]
-        flat_size = N * self.H * self.W * self.C
-        probs_flat = gather_nd(tf.reshape(model_outputs, (flat_size, self.n_vals)), tf.reshape(x, (flat_size,)))
-        # reshape back to image shape for probs
-        probs = tf.reshape(probs_flat, (N, self.H, self.W, self.C))
-        return probs
+        logits = self.model(x)
+        return logits
 
-    def forward(self, x):
+    def forward_softmax(self, x):
         """
-        Forward pass returning full (flat) probability values (N, H * W * C, N_V)
-        where N_V is number of values each channel can take. ie this gives the
-        output of the softmax
+        Fwd pass retuning softmax values in image shape (N, H, W, C, N_V)
         """
-        # prob is output for the unit corresponding to value of this pixel
-        x = tf.cast(x, tf.int32)
-        # model outputs softmax (N, H * W * C, N_V) where N is number of data in batch, Height, Width, Channels of image
-        # and N_V is number of values each channel can take
-        model_outputs = self.model(x)
-        return model_outputs
+        logits = self.forward_logits(x)
+        probs = tf.nn.softmax(logits, axis=-1)
+        return tf.reshape(probs, (-1, self.H, self.W, self.C, self.n_vals))
 
     def train_step(self, X_train):
         """
         Takes batch of data X_train
         """
         with tf.GradientTape() as tape:
-            # TODO: loss as tf softmax x_ent w logits? clip grads?
-            logprob = self.eval(X_train)
+            # TODO: clip grads?
+            logprob = self.fwd_loss(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob
@@ -206,28 +195,20 @@ class PixelCNN:
         X is batched in to handle large data
         note this returns mean logprob over batch
         """
-        logprobs = []
+        neg_logprobs_bits = []
         for i in range(len(X) // bs):
-            logprobs.append(self.eval(X[i * bs: (i + 1) * bs]))
+            neg_logprobs_bits.append(self.fwd_loss(X[i * bs: (i + 1) * bs]))
         extra_data = X[len(X) // bs:]
         if len(extra_data) == 1:
             # add batch dimension
             extra_data = [extra_data]
-        logprobs.append(self.eval(extra_data))
-        return tf.reduce_mean(logprobs)
+        neg_logprobs_bits.append(self.fwd_loss(extra_data))
+        return tf.reduce_mean(neg_logprobs_bits)
 
-    def eval(self, X):
-        preds = self.forward_gather(X)
-        logprob = self.sum_logprob(preds)
-        return logprob
-
-    def reshape_model_outputs(self, probs):
-        """
-        Reshapes softmax output (N, H * W * C, N_V) to image shape
-        (N, H, W, C, N_V) probs
-        """
-        N = tf.shape(probs)[0]
-        return tf.reshape(probs, (N, self.H, self.W, self.C, self.n_vals))
+    def fwd_loss(self, X):
+        logits = self.forward_logits(X)
+        loss = self.loss(tf.reshape(x, (-1, self.H * self.W, self.C)), logits)
+        return loss
 
     def get_samples(self, n):
         """
@@ -239,8 +220,7 @@ class PixelCNN:
         for h in range(self.H):
             for w in range(self.W):
                 for c in range(self.C):
-                    model_preds_flat = self.forward(images)
-                    model_preds = tf.reshape(model_preds_flat, (n, self.H, self.W, self.C, self.n_vals))
+                    model_preds = self.forward_softmax(images)
                     # categorical over pixel values
                     pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
                     images[:, h, w, c] = pixel_dist.sample(1)

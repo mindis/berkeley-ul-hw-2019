@@ -17,7 +17,15 @@ def gather_nd(x, inds, name="gather_nd"):
 
 def tf_log2(probs):
     nat_log = tf.math.log(probs)
-    return nat_log / tf.math.log(tf.constant(2, dtype=nat_log.dtype))
+    return tf_log_to_base_n(nat_log)
+
+
+def tf_log_to_base_n(nat_log, n):
+    """
+    natlog = tf.log natural log
+    n: base to change to, int
+    """
+    return nat_log / tf.math.log(tf.constant(n, dtype=nat_log.dtype))
 
 
 def get_batch(X, bs):
