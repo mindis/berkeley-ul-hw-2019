@@ -56,12 +56,13 @@ def mask_centre(cur_pixel, isTypeA, mask, n_channels):
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):
-    def __init__(self, n_filters, kernel_size, isTypeA, **kwargs):
+    def __init__(self, n_filters, kernel_size, isTypeA, activation=None, **kwargs):
         """
         n_filters and kernel_size for conv layer
         isTypeA for mask type
         """
-        super(MaskedCNN, self).__init__(n_filters, kernel_size, padding="SAME", **kwargs)
+        super(MaskedCNN, self).__init__(n_filters, kernel_size, padding="SAME",
+                                        activation=activation, **kwargs)
         self.isTypeA = isTypeA
 
     def build(self, input_shape):
@@ -82,7 +83,7 @@ class MaskedResidualBlock(tf.keras.layers.Layer):
         # 1x1 relu filter, then 3x3 then 1x1
         self.layer1 = MaskedCNN(self.n_filters, 1, False, activation="relu")
         self.layer2 = MaskedCNN(self.n_filters, 3, False, activation="relu")
-        self.layer3 = MaskedCNN(self.n_filters, 1, False, activation="relu")
+        self.layer3 = MaskedCNN(self.n_filters*2, 1, False, activation="relu")
 
     def call(self, inputs):
         """
@@ -103,9 +104,13 @@ class PixelCNNModel(tf.keras.Model):
         self.n_filters = 128
 
     def build(self, input_shape, **kwargs):
-        self.layer1 = MaskedCNN(self.n_filters, 7, True)
+        self.layer1 = MaskedCNN(self.n_filters*2, 7, True)
         self.res_layers = [MaskedResidualBlock(self.n_filters) for _ in range(12)]
-        self.conv1x1 = [MaskedCNN(self.n_filters, 1, False) for _ in range(2)]
+        # want ReLU applied first as per paper
+        self.relu_conv1x1 = [tf.keras.layers.ReLU(),
+                             MaskedCNN(self.n_filters, 1, False),
+                             tf.keras.layers.ReLU(),
+                             MaskedCNN(self.n_filters, 1, False)]
         self.output_conv = MaskedCNN(self.output_size * self.output_channels, 1, False)
         self.softmax = tf.keras.layers.Softmax()
 
@@ -114,7 +119,7 @@ class PixelCNNModel(tf.keras.Model):
         x = self.layer1(img)
         for layer in self.res_layers:
             x = layer(x)
-        for layer in self.conv1x1:
+        for layer in self.relu_conv1x1:
             x = layer(x)
         x = self.output_conv(x)
         # output layer softmax split into n_channels
@@ -189,6 +194,7 @@ class PixelCNN:
         Takes batch of data X_train
         """
         with tf.GradientTape() as tape:
+            # TODO: loss as tf softmax x_ent w logits? clip grads?
             logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))

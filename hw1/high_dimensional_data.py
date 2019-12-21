@@ -14,7 +14,7 @@ def set_seed(seed=100):
     np.random.seed(seed)
 
 
-def train_model(X_train, X_val, model, training_logger, n_iters=2000, bs=128, log_every=100):
+def train_model(X_train, X_val, model, training_logger, n_iters=2500, bs=128, log_every=100):
     for i in range(n_iters+1):
         batch = get_batch(X_train, bs)
         logprob = model.train_step(batch)
@@ -108,5 +108,4 @@ if __name__ == "__main__":
 
     # pixel_cnn_debug()
 
-    # TODO: try main!
     pixel_cnn_main()
