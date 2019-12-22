@@ -265,19 +265,6 @@ def display_image_grid(data, title):
     plot_image(disp, title)
 
 
-def display_image_rows(data, title):
-    """
-    data is shape (n, h, w, c)
-    plots n rows of images
-    """
-    c = data.shape[3]
-    disp = np.concatenate(data, axis=0)
-    title = "{}-grid".format(title) if title is not None else None
-    if c == 1:
-        disp = np.squeeze(disp)
-    plot_image(disp, title)
-
-
 def test_maskA():
     mask_shape = (5, 5, 3, 3)
     mask = get_pixelcnn_mask(mask_shape, True)
@@ -289,9 +276,19 @@ def display_mask(mask, title):
     # so rows are prev layer's channels, cols are this layer's
     # concat by prev layer channels into row images, then this channel dim is each image in the row (cols)
     mask_disp = np.concatenate(mask.transpose([3, 1, 0, 2]), axis=0).transpose([2, 1, 0])[..., None]
-    print(mask_disp.shape)
-    # mask_disp = mask.reshape(mask_shape[:2] + (-1, 1)).transpose([2, 0, 1, 3])
-    display_image_rows(mask_disp, title)
+    # data is shape (n, h, w, c)
+    # plots n rows of images
+    c = mask_disp.shape[3]
+    disp = np.concatenate(mask_disp, axis=0)
+    title = "{}-grid".format(title) if title is not None else None
+    if c == 1:
+        disp = np.squeeze(disp)
+    letters = ["R", "G", "B"]
+    for i, j in enumerate([2, 7, 12]):
+        plt.text(j, 15.5, letters[i])
+        plt.text(-1.5, j, letters[i])
+    plt.tick_params(labelbottom=False, labelleft=False)
+    plot_image(disp, title)
 
 
 def test_maskB():
@@ -322,9 +319,6 @@ def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, 
 
 
 if __name__ == "__main__":
-    # test_maskA()
-    # test_maskB()
-    pixelcnn_mask = get_pixelcnn_mask((5, 5, 3, 3), True)
-    display_mask(pixelcnn_mask, None)
-    pixelcnn_mask = get_pixelcnn_mask((5, 5, 3, 3), False)
-    display_mask(pixelcnn_mask, None)
+    test_maskA()
+    test_maskB()
+
