@@ -20,7 +20,7 @@ def get_pixelcnn_mask(this_filters_shape, isTypeA, n_channels=3):
 
     Returns mask of shape (kernel_size, kernel_size, # channels, # filters)
     """
-    mask = np.ones(this_filters_shape)
+    mask = np.zeros(this_filters_shape)
     ctr_pix = [this_filters_shape[0] // 2, this_filters_shape[1] // 2]
     # mask out all pixels conditioned on
     for i in range(this_filters_shape[0]):
@@ -30,9 +30,8 @@ def get_pixelcnn_mask(this_filters_shape, isTypeA, n_channels=3):
                 mask_centre(ctr_pix, isTypeA, mask, n_channels)
                 break
             # mask all channels for conditioned pixels
-            # TODO: should this be other way? due to image y axis flipped
             elif i < ctr_pix[0] or (i == ctr_pix[0] and j < ctr_pix[1]):
-                mask[i, j, :, :] = 0
+                mask[i, j, :, :] = 1
     return mask
 
 
@@ -49,10 +48,10 @@ def mask_centre(cur_pixel, isTypeA, mask, n_channels):
     """
     for i in range(n_channels):
         for j in range(n_channels):
-            if isTypeA and i >= j:
-                mask[cur_pixel[0], cur_pixel[1], i::n_channels, j::n_channels] = 0
-            elif i > j:
-                mask[cur_pixel[0], cur_pixel[1], i::n_channels, j::n_channels] = 0
+            if not isTypeA and i <= j:
+                mask[cur_pixel[0], cur_pixel[1], i::n_channels, j::n_channels] = 1
+            elif i < j:
+                mask[cur_pixel[0], cur_pixel[1], i::n_channels, j::n_channels] = 1
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):
@@ -81,19 +80,22 @@ class MaskedResidualBlock(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         # 1x1 relu filter, then 3x3 then 1x1
-        self.layer1 = MaskedCNN(self.n_filters, 1, False, activation="relu")
-        self.layer2 = MaskedCNN(self.n_filters, 3, False, activation="relu")
-        self.layer3 = MaskedCNN(self.n_filters*2, 1, False, activation="relu")
+        self.layer1 = MaskedCNN(self.n_filters, 1, False)
+        self.layer2 = MaskedCNN(self.n_filters, 3, False)
+        self.layer3 = MaskedCNN(self.n_filters*2, 1, False)
 
     def call(self, inputs):
         """
         x is the inputs, [image, (cx, cy)]
         """
         # other layers take img and cur pixel location
-        x = self.layer1(inputs)
+        x = tf.keras.layers.ReLU()(inputs)
+        x = self.layer1(x)
+        x = tf.keras.layers.ReLU()(x)
         x = self.layer2(x)
-        res_path = self.layer3(x)
-        return inputs + res_path
+        x = tf.keras.layers.ReLU()(x)
+        x = self.layer3(x)
+        return inputs + x
 
 
 class PixelCNNModel(tf.keras.Model):
@@ -207,7 +209,7 @@ class PixelCNN:
 
     def fwd_loss(self, X):
         logits = self.forward_logits(X)
-        loss = self.loss(tf.reshape(x, (-1, self.H * self.W, self.C)), logits)
+        loss = self.loss(tf.reshape(X, (-1, self.H * self.W, self.C)), logits)
         return loss
 
     def get_samples(self, n):
@@ -217,6 +219,8 @@ class PixelCNN:
         We batch this for efficiency.
         """
         images = np.zeros((n, self.H, self.W, self.C))
+        # start with random values for first channel of first pixel
+        images[:, 0, 0, 0] = np.random.choice(self.n_vals, size=n)
         for h in range(self.H):
             for w in range(self.W):
                 for c in range(self.C):
@@ -277,27 +281,50 @@ def display_image_rows(data, title):
 def test_maskA():
     mask_shape = (5, 5, 3, 3)
     mask = get_pixelcnn_mask(mask_shape, True)
+    display_mask(mask, "Example Mask A")
+
+
+def display_mask(mask, title):
     # index by prev layer's channels then this layer's channels
     # so rows are prev layer's channels, cols are this layer's
     # concat by prev layer channels into row images, then this channel dim is each image in the row (cols)
     mask_disp = np.concatenate(mask.transpose([3, 1, 0, 2]), axis=0).transpose([2, 1, 0])[..., None]
     print(mask_disp.shape)
     # mask_disp = mask.reshape(mask_shape[:2] + (-1, 1)).transpose([2, 0, 1, 3])
-    display_image_rows(mask_disp, "Example Mask A")
+    display_image_rows(mask_disp, title)
 
 
 def test_maskB():
     mask_shape = (5, 5, 3, 3)
     mask = get_pixelcnn_mask(mask_shape, False)
-    # index by prev layer's channels then this layer's channels
-    # so rows are prev layer's channels, cols are this layer's
-    # concat by prev layer channels into row images, then this channel dim is each image in the row (cols)
-    mask_disp = np.concatenate(mask.transpose([3, 1, 0, 2]), axis=0).transpose([2, 1, 0])[..., None]
-    print(mask_disp.shape)
-    # mask_disp = mask.reshape(mask_shape[:2] + (-1, 1)).transpose([2, 0, 1, 3])
-    display_image_rows(mask_disp, "Example Mask B")
+    display_mask(mask, "Example Mask B")
+
+
+def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
+    mask = np.zeros(shape=(kernel_size, kernel_size, channels_in, channels_out), dtype=np.float32)
+    mask[:kernel_size // 2, :, :, :] = 1
+    mask[kernel_size // 2, :kernel_size // 2, :, :] = 1
+
+    if factorized:
+        if mask_type == 'B':
+            mask[kernel_size // 2, kernel_size // 2, :, :] = 1
+    else:
+        factor_w = int(np.ceil(channels_out / input_channels))
+        factor_h = int(np.ceil(channels_in / input_channels))
+        k = mask_type == 'A'
+        m0 = np.triu(np.ones(dtype=np.float32, shape=(input_channels, input_channels)), k)
+        m1 = np.repeat(m0, factor_w, axis=1)
+        m2 = np.repeat(m1, factor_h, axis=0)
+        mask_ch = m2[:channels_in, :channels_out]
+        mask[kernel_size // 2, kernel_size // 2, :, :] = mask_ch
+
+    return mask
 
 
 if __name__ == "__main__":
-    test_maskA()
-    test_maskB()
+    # test_maskA()
+    # test_maskB()
+    pixelcnn_mask = get_pixelcnn_mask((5, 5, 3, 3), True)
+    display_mask(pixelcnn_mask, None)
+    pixelcnn_mask = get_pixelcnn_mask((5, 5, 3, 3), False)
+    display_mask(pixelcnn_mask, None)

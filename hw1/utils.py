@@ -17,7 +17,7 @@ def gather_nd(x, inds, name="gather_nd"):
 
 def tf_log2(probs):
     nat_log = tf.math.log(probs)
-    return tf_log_to_base_n(nat_log)
+    return tf_log_to_base_n(nat_log, 2)
 
 
 def tf_log_to_base_n(nat_log, n):
