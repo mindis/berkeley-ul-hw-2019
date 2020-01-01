@@ -106,5 +106,5 @@ if __name__ == "__main__":
 
     # plot_data()
 
-    # pixel_cnn_debug()
-    pixel_cnn_main()
+    pixel_cnn_debug()
+    # pixel_cnn_main()

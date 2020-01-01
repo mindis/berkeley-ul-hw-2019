@@ -156,6 +156,7 @@ class PixelCNN:
         probs are outputs of forward model, a probability for each image (N, )
         Returns mean *negative* log prob (likelihood) over x (a scalar)
         Autoregressive over space, ie. decomposes into a product over pixels conditioned on previous ones in ordering
+        Since single dimension predicted each forward pass, logprob (base 2) is in bits per dimension
         """
         labels = tf.cast(labels, tf.int32)
         loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits))
@@ -295,27 +296,6 @@ def test_maskB():
     mask_shape = (5, 5, 3, 3)
     mask = get_pixelcnn_mask(mask_shape, False)
     display_mask(mask, "Example Mask B")
-
-
-def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
-    mask = np.zeros(shape=(kernel_size, kernel_size, channels_in, channels_out), dtype=np.float32)
-    mask[:kernel_size // 2, :, :, :] = 1
-    mask[kernel_size // 2, :kernel_size // 2, :, :] = 1
-
-    if factorized:
-        if mask_type == 'B':
-            mask[kernel_size // 2, kernel_size // 2, :, :] = 1
-    else:
-        factor_w = int(np.ceil(channels_out / input_channels))
-        factor_h = int(np.ceil(channels_in / input_channels))
-        k = mask_type == 'A'
-        m0 = np.triu(np.ones(dtype=np.float32, shape=(input_channels, input_channels)), k)
-        m1 = np.repeat(m0, factor_w, axis=1)
-        m2 = np.repeat(m1, factor_h, axis=0)
-        mask_ch = m2[:channels_in, :channels_out]
-        mask[kernel_size // 2, kernel_size // 2, :, :] = mask_ch
-
-    return mask
 
 
 if __name__ == "__main__":
