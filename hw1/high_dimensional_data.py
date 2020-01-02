@@ -49,9 +49,9 @@ def pixel_cnn_main():
     train_and_eval_main(X_test, X_train, X_val, model)
 
 
-def train_and_eval_main(X_test, X_train, X_val, model):
+def train_and_eval_main(X_test, X_train, X_val, model, **kwargs):
     training_logger = TrainingLogger(model.name, "1_3")
-    train_model(X_train, X_val, model, training_logger)
+    train_model(X_train, X_val, model, training_logger, **kwargs)
     eval_model(model, X_test, training_logger)
 
 
@@ -96,9 +96,9 @@ def pixel_cnn_debug(one_pattern=True):
     X_train, X_val, X_test = debug_data()
     if one_pattern:
         X_train = np.repeat(X_train[0][None], 1000, axis=0)
-        train_and_eval_main(X_train, X_train, X_train, model)
+        train_and_eval_main(X_train, X_train, X_train, model, log_every=10, n_iters=100)
     else:
-        train_and_eval_main(X_test, X_train, X_val, model)
+        train_and_eval_main(X_test, X_train, X_val, model, log_every=10, n_iters=100)
 
 
 def plot_debug_data():

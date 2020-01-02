@@ -56,8 +56,12 @@ class MaskedCNN(tf.keras.layers.Conv2D):
         self.mask = get_pixelcnn_mask(self.kernel_size[0], in_channels, out_channels, self.isTypeA)
 
     def call(self, inputs):
+        # mask kernel for internal conv op, but then return to copy of kernel after for learning
+        kernel_copy = self.kernel
         self.kernel = self.kernel * self.mask
-        return super().call(inputs)
+        out = super().call(inputs)
+        self.kernel = kernel_copy
+        return out
 
 
 class MaskedResidualBlock(tf.keras.layers.Layer):
@@ -91,7 +95,7 @@ class PixelCNNModel(tf.keras.Model):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.output_size = 4
+        self.n_vals = 4
         self.output_channels = 3
         self.n_filters = 128
 
@@ -103,8 +107,7 @@ class PixelCNNModel(tf.keras.Model):
                              MaskedCNN(self.n_filters, 1, False),
                              tf.keras.layers.ReLU(),
                              MaskedCNN(self.n_filters, 1, False)]
-        self.output_conv = MaskedCNN(self.output_size * self.output_channels, 1, False)
-        self.softmax = tf.keras.layers.Softmax()
+        self.output_conv = MaskedCNN(self.n_vals * self.output_channels, 1, False)
 
     def call(self, inputs, training=None, mask=None):
         img = tf.cast(inputs, tf.float32)
@@ -116,7 +119,7 @@ class PixelCNNModel(tf.keras.Model):
         x = self.output_conv(x)
         # output layer softmax split into n_channels
         n, h, w, _ = tf.shape(inputs)
-        x = tf.reshape(x, (n, h * w, self.output_channels, self.output_size))
+        x = tf.reshape(x, (n, h,  w, self.output_channels, self.n_vals))
         return x
 
 
@@ -166,14 +169,13 @@ class PixelCNN:
         """
         logits = self.forward_logits(x)
         probs = tf.nn.softmax(logits, axis=-1)
-        return tf.reshape(probs, (-1, self.H, self.W, self.C, self.n_vals))
+        return probs
 
     def train_step(self, X_train):
         """
         Takes batch of data X_train
         """
         with tf.GradientTape() as tape:
-            # TODO: clip grads?
             logprob = self.fwd_loss(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
@@ -197,10 +199,7 @@ class PixelCNN:
 
     def fwd_loss(self, X):
         X = tf.reshape(X, (-1, self.H, self.W, self.C))
-
         logits = self.forward_logits(X)
-        logits = tf.reshape(logits, (-1, self.H, self.W, self.C, self.n_vals))
-
         loss = self.loss(X, logits)
         return loss
 
@@ -292,7 +291,4 @@ if __name__ == "__main__":
     test_maskA()
     test_maskB()
 
-# TODO: why is the performance so much better (quicker) on the example one?
-# TODO: try pieces of example one in here?
-# TODO: is the masking non-differentiable? print kernel pre and post mask
-
+# TODO: clean up and simplify
