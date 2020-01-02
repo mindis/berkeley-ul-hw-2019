@@ -10,6 +10,11 @@ def load_data(pct_val=0.15):
     return train_data[int(len(train_data) * pct_val):], train_data[:int(len(train_data) * pct_val)], data["test"]
 
 
+def plot_data():
+    X_train, X_val, X_test = load_data()
+    display_image_grid(X_train[:9], "Training-Data")
+
+
 def set_seed(seed=100):
     np.random.seed(seed)
 
@@ -82,7 +87,7 @@ def debug_data(n_samples=10000, pct_val=0.15, pct_test=0.2):
            data[int(n_samples * (pct_train+pct_val)):]
 
 
-def pixel_cnn_debug(one_pattern=False):
+def pixel_cnn_debug(one_pattern=True):
     """
     one_pattern: if true repeats a single example to debug overfitting to one sample
     otherwise a sample of perturbed checkerboards are used.
@@ -96,15 +101,16 @@ def pixel_cnn_debug(one_pattern=False):
         train_and_eval_main(X_test, X_train, X_val, model)
 
 
-def plot_data():
-    X_train, X_val, X_test = load_data()
-    display_image_grid(X_train[:9], "Training-Data")
+def plot_debug_data():
+    X_train, X_val, X_test = debug_data()
+    display_image_grid(X_train[:9], None)
 
 
 if __name__ == "__main__":
     set_seed()
 
     # plot_data()
-
-    pixel_cnn_debug()
     # pixel_cnn_main()
+
+    # plot_debug_data()
+    pixel_cnn_debug()

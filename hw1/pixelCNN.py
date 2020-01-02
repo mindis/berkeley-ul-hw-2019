@@ -5,53 +5,38 @@ from matplotlib import pyplot as plt
 
 from utils import tf_log_to_base_n
 
-
-def get_pixelcnn_mask(this_filters_shape, isTypeA, n_channels=3):
+def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3):
     """
-    raster ordering on conditioning
+    raster ordering on conditioning mask
 
-    this_filters_shape define the layer sizes
+    kernel_size: size N of filter N x N
+    in_channels: number of channels in
+    out_channels: number of channels out
     isTypeA: bool, true if type A mask, otherwise type B mask used.
-    Type A takes context and previous channels (but not its own channel)
-    Type B takes context, prev channels and connected to own channel.
+        Type A takes context and previous channels (but not its own channel)
+        Type B takes context, prev channels and connected to own channel.
 
     We group the filters so that different filters correspond to different channels.
     first 3 are R, next 3 are G, last 3 are B
 
     Returns mask of shape (kernel_size, kernel_size, # channels, # filters)
     """
-    mask = np.zeros(this_filters_shape)
-    ctr_pix = [this_filters_shape[0] // 2, this_filters_shape[1] // 2]
-    # mask out all pixels conditioned on
-    for i in range(this_filters_shape[0]):
-        for j in range(this_filters_shape[1]):
-            # deal with centre pixel, then by ordering the other pixels are all 1
-            if i == ctr_pix[0] and j == ctr_pix[1]:
-                mask_centre(ctr_pix, isTypeA, mask, n_channels)
-                break
-            # mask all channels for conditioned pixels
-            elif i < ctr_pix[0] or (i == ctr_pix[0] and j < ctr_pix[1]):
-                mask[i, j, :, :] = 1
-    return mask
-
-
-def mask_centre(cur_pixel, isTypeA, mask, n_channels):
-    """
-    cur_pixel location (row, col)
-    mask is the mask to build of shape filters_shape
-    n_channels is the number of channels usually 3
-
-    first 3 are R, next 3 are G, last 3 are B
-    mask of shape (kernel_size, kernel_size, # channels, # filters)
-    so 3rd dimension (# channels) is prev layer's RGB
-    and 4th dimension (# filters) is next layer's RGB
-    """
+    mask = np.ones((kernel_size, kernel_size, in_channels, out_channels))
+    centre = kernel_size // 2
+    for i in range(kernel_size):
+        for j in range(kernel_size):
+            if (j > centre) or (j == centre and i > centre):
+                mask[j, i, :, :] = 0.
     for i in range(n_channels):
         for j in range(n_channels):
-            if not isTypeA and i <= j:
-                mask[cur_pixel[0], cur_pixel[1], i::n_channels, j::n_channels] = 1
-            elif i < j:
-                mask[cur_pixel[0], cur_pixel[1], i::n_channels, j::n_channels] = 1
+            if (isTypeA and i >= j) or (not isTypeA and i > j):
+                mask[
+                centre,
+                centre,
+                j::n_channels,
+                i::n_channels,
+                ] = 0.
+    return mask
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):
@@ -60,13 +45,15 @@ class MaskedCNN(tf.keras.layers.Conv2D):
         n_filters and kernel_size for conv layer
         isTypeA for mask type
         """
+        assert isinstance(kernel_size, int), "Masked CNN requires square n x n kernel"
         super(MaskedCNN, self).__init__(n_filters, kernel_size, padding="SAME",
                                         activation=activation, **kwargs)
         self.isTypeA = isTypeA
 
     def build(self, input_shape):
         super().build(input_shape)
-        self.mask = get_pixelcnn_mask(self.kernel.shape, self.isTypeA)
+        (_, _, in_channels, out_channels) = self.kernel.shape
+        self.mask = get_pixelcnn_mask(self.kernel_size[0], in_channels, out_channels, self.isTypeA)
 
     def call(self, inputs):
         self.kernel = self.kernel * self.mask
@@ -209,8 +196,12 @@ class PixelCNN:
         return tf.reduce_mean(neg_logprobs_bits)
 
     def fwd_loss(self, X):
+        X = tf.reshape(X, (-1, self.H, self.W, self.C))
+
         logits = self.forward_logits(X)
-        loss = self.loss(tf.reshape(X, (-1, self.H * self.W, self.C)), logits)
+        logits = tf.reshape(logits, (-1, self.H, self.W, self.C, self.n_vals))
+
+        loss = self.loss(X, logits)
         return loss
 
     def get_samples(self, n):
@@ -267,8 +258,8 @@ def display_image_grid(data, title):
 
 
 def test_maskA():
-    mask_shape = (5, 5, 3, 3)
-    mask = get_pixelcnn_mask(mask_shape, True)
+    mask = get_pixelcnn_mask(5, 3, 3, True)
+    print(mask.shape)
     display_mask(mask, "Example Mask A")
 
 
@@ -293,12 +284,15 @@ def display_mask(mask, title):
 
 
 def test_maskB():
-    mask_shape = (5, 5, 3, 3)
-    mask = get_pixelcnn_mask(mask_shape, False)
+    mask = get_pixelcnn_mask(5, 3, 3, False)
     display_mask(mask, "Example Mask B")
 
 
 if __name__ == "__main__":
     test_maskA()
     test_maskB()
+
+# TODO: why is the performance so much better (quicker) on the example one?
+# TODO: try pieces of example one in here?
+# TODO: is the masking non-differentiable? print kernel pre and post mask
 
