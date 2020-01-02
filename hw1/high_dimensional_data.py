@@ -19,7 +19,7 @@ def set_seed(seed=100):
     np.random.seed(seed)
 
 
-def train_model(X_train, X_val, model, training_logger, n_iters=2500, bs=128, log_every=100):
+def train_model(X_train, X_val, model, training_logger, n_iters=1000, bs=128, log_every=50):
     for i in range(n_iters+1):
         batch = get_batch(X_train, bs)
         logprob = model.train_step(batch)
@@ -111,8 +111,8 @@ def plot_debug_data():
 if __name__ == "__main__":
     set_seed()
 
-    # plot_data()
-    # pixel_cnn_main()
-
     # plot_debug_data()
-    pixel_cnn_debug()
+    # pixel_cnn_debug()
+
+    # plot_data()
+    pixel_cnn_main()

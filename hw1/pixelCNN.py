@@ -9,6 +9,8 @@ from utils import tf_log_to_base_n
 def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3):
     """
     raster ordering on conditioning mask
+    channel ordering is R, G, B repeated with modulo if channel in or out != n_channels
+    so if 4 channels then it's R, G, B, R etc.
 
     kernel_size: size N of filter N x N
     in_channels: number of channels in
@@ -17,27 +19,21 @@ def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channel
         Type A takes context and previous channels (but not its own channel)
         Type B takes context, prev channels and connected to own channel.
 
-    We group the filters so that different filters correspond to different channels.
-    first 3 are R, next 3 are G, last 3 are B
-
-    Returns mask of shape (kernel_size, kernel_size, # channels, # filters)
+    Returns mask of shape (kernel_size, kernel_size, # in channels, # out channels)
     """
-    mask = np.ones((kernel_size, kernel_size, in_channels, out_channels))
+    mask = np.ones((kernel_size, kernel_size, n_channels, n_channels))
     centre = kernel_size // 2
-    for i in range(kernel_size):
-        for j in range(kernel_size):
-            if (j > centre) or (j == centre and i > centre):
-                mask[j, i, :, :] = 0.
-    for i in range(n_channels):
-        for j in range(n_channels):
-            if (isTypeA and i >= j) or (not isTypeA and i > j):
-                mask[
-                centre,
-                centre,
-                j::n_channels,
-                i::n_channels,
-                ] = 0.
-    return mask
+    # bottom rows 0s
+    mask[centre+1:, :, :, :] = 0.
+    # right of centre on centre row 0s
+    mask[centre:, centre+1:, :, :] = 0.
+    # deal with centre based on mask type
+    k = 0 if isTypeA else 1
+    i, j = np.triu_indices(n_channels, k)
+    mask[centre, centre, i, j] = 0.
+    # tile the masks to potentially more than needed, then retrieve the number of channels wanted
+    mask = np.tile(mask, (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels))))
+    return mask[:, :, :in_channels, :out_channels]
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):
