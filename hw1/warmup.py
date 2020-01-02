@@ -79,7 +79,7 @@ def train(X_train, X_val, model, train_log):
     for i in range(201):
         logprob = model.train_step(X_train)
         if i % 100 == 0:
-            val_logprob = model.fwd_loss(X_val)
+            val_logprob = model.eval(X_val)
             train_log.add(i, logprob, val_logprob)
 
 

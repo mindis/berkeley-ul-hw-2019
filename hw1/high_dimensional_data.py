@@ -24,9 +24,8 @@ def train_model(X_train, X_val, model, training_logger, n_iters=2500, bs=128, lo
         batch = get_batch(X_train, bs)
         logprob = model.train_step(batch)
         if i % log_every == 0:
-            # TODO: use full val data
             # get validation performance and add to logs
-            val_logprob = model.eval_batch(X_val[:bs*10])
+            val_logprob = model.eval_batch(X_val)
             training_logger.add(i, logprob, val_logprob)
             # draw some samples for visualising training performance
             sample_model(model, 4)
@@ -34,7 +33,7 @@ def train_model(X_train, X_val, model, training_logger, n_iters=2500, bs=128, lo
 
 def eval_model(model, X_test, training_logger, bs=128):
     sample_model(model, 100)
-    test_logprob = model.eval_batch(X_test[:bs*10])
+    test_logprob = model.eval_batch(X_test)
     training_logger.plot(float(test_logprob))
 
 
@@ -44,6 +43,9 @@ def sample_model(model, n):
 
 
 def pixel_cnn_main():
+    """
+    Run pixel CNN: Loads data, trains model and evaluates final samples and test set
+    """
     model = PixelCNN()
     X_train, X_val, X_test = load_data()
     train_and_eval_main(X_test, X_train, X_val, model)

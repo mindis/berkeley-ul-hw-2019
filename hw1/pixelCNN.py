@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 
 from utils import tf_log_to_base_n
 
+
 def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3):
     """
     raster ordering on conditioning mask
@@ -176,7 +177,7 @@ class PixelCNN:
         Takes batch of data X_train
         """
         with tf.GradientTape() as tape:
-            logprob = self.fwd_loss(X_train)
+            logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob
@@ -189,15 +190,20 @@ class PixelCNN:
         """
         neg_logprobs_bits = []
         for i in range(len(X) // bs):
-            neg_logprobs_bits.append(self.fwd_loss(X[i * bs: (i + 1) * bs]))
+            neg_logprobs_bits.append(self.eval(X[i * bs: (i + 1) * bs]))
         extra_data = X[len(X) // bs:]
         if len(extra_data) == 1:
             # add batch dimension
             extra_data = [extra_data]
-        neg_logprobs_bits.append(self.fwd_loss(extra_data))
+        neg_logprobs_bits.append(self.eval(extra_data))
         return tf.reduce_mean(neg_logprobs_bits)
 
-    def fwd_loss(self, X):
+    def eval(self, X):
+        """
+        Runs forward pass and loss
+        :param X: input images batch
+        :return: loss
+        """
         X = tf.reshape(X, (-1, self.H, self.W, self.C))
         logits = self.forward_logits(X)
         loss = self.loss(X, logits)
@@ -290,5 +296,3 @@ def test_maskB():
 if __name__ == "__main__":
     test_maskA()
     test_maskB()
-
-# TODO: clean up and simplify

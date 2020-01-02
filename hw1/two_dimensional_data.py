@@ -51,14 +51,14 @@ def train_model(X_train, X_val, model, training_logger):
     for i in range(1001):
         logprob = model.train_step(get_batch(X_train, 10000))
         if i % 100 == 0:
-            val_logprob = model.fwd_loss(X_val)
+            val_logprob = model.eval(X_val)
             training_logger.add(i, logprob, val_logprob)
 
 
 def eval_model(model, X_test, training_logger):
     probs = model.get_probs()
     plot_distribution_heatmap(probs, "{}-distribution".format(model.name))
-    test_logprob = model.loss(model.forward_logits(X_test))
+    test_logprob = model.eval(X_test)
     training_logger.plot(float(test_logprob))
 
 
