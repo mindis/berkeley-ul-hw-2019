@@ -229,7 +229,7 @@ def plot_image(image, title, n_vals=3):
     plt.imshow((image * 255. / n_vals).astype(np.uint8), cmap="gray")
     if title is not None:
         plt.title(title)
-        plt.savefig("figures/1_3/{}".format(title))
+        plt.savefig("figures/1_3/{}.svg".format(title))
     plt.draw()
     plt.pause(0.001)
 
