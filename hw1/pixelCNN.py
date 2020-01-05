@@ -6,34 +6,55 @@ from matplotlib import pyplot as plt
 from utils import tf_log_to_base_n
 
 
-def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3):
-    """
-    raster ordering on conditioning mask
-    channel ordering is R, G, B repeated with modulo if channel in or out != n_channels
-    so if 4 channels then it's R, G, B, R etc.
+# def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3):
+#     """
+#     raster ordering on conditioning mask
+#     channel ordering is R, G, B repeated with modulo if channel in or out != n_channels
+#     so if 4 channels then it's R, G, B, R etc.
+#
+#     kernel_size: size N of filter N x N
+#     in_channels: number of channels in
+#     out_channels: number of channels out
+#     isTypeA: bool, true if type A mask, otherwise type B mask used.
+#         Type A takes context and previous channels (but not its own channel)
+#         Type B takes context, prev channels and connected to own channel.
+#
+#     Returns mask of shape (kernel_size, kernel_size, # in channels, # out channels)
+#     """
+#     mask = np.ones((kernel_size, kernel_size, n_channels, n_channels))
+#     centre = kernel_size // 2
+#     # bottom rows 0s
+#     mask[centre+1:, :, :, :] = 0.
+#     # right of centre on centre row 0s
+#     mask[centre:, centre+1:, :, :] = 0.
+#     # deal with centre based on mask type
+#     k = 0 if isTypeA else 1
+#     i, j = np.triu_indices(n_channels, k)
+#     mask[centre, centre, i, j] = 0.
+#     # tile the masks to potentially more than needed, then retrieve the number of channels wanted
+#     mask = np.tile(mask, (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels))))
+#     return mask[:, :, :in_channels, :out_channels]
 
-    kernel_size: size N of filter N x N
-    in_channels: number of channels in
-    out_channels: number of channels out
-    isTypeA: bool, true if type A mask, otherwise type B mask used.
-        Type A takes context and previous channels (but not its own channel)
-        Type B takes context, prev channels and connected to own channel.
 
-    Returns mask of shape (kernel_size, kernel_size, # in channels, # out channels)
-    """
-    mask = np.ones((kernel_size, kernel_size, n_channels, n_channels))
-    centre = kernel_size // 2
-    # bottom rows 0s
-    mask[centre+1:, :, :, :] = 0.
-    # right of centre on centre row 0s
-    mask[centre:, centre+1:, :, :] = 0.
-    # deal with centre based on mask type
-    k = 0 if isTypeA else 1
-    i, j = np.triu_indices(n_channels, k)
-    mask[centre, centre, i, j] = 0.
-    # tile the masks to potentially more than needed, then retrieve the number of channels wanted
-    mask = np.tile(mask, (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels))))
-    return mask[:, :, :in_channels, :out_channels]
+def get_pixelcnn_mask(kernel_size, channels_in, channels_out, mask_typeA, input_channels=3, factorized=True):
+    mask = np.zeros(shape=(kernel_size, kernel_size, channels_in, channels_out), dtype=np.float32)
+    mask[:kernel_size // 2, :, :, :] = 1
+    mask[kernel_size // 2, :kernel_size // 2, :, :] = 1
+
+    if factorized:
+        if not mask_typeA:
+            mask[kernel_size // 2, kernel_size // 2, :, :] = 1
+    else:
+        factor_w = int(np.ceil(channels_out / input_channels))
+        factor_h = int(np.ceil(channels_in / input_channels))
+        k = mask_typeA
+        m0 = np.triu(np.ones(dtype=np.float32, shape=(input_channels, input_channels)), k)
+        m1 = np.repeat(m0, factor_w, axis=1)
+        m2 = np.repeat(m1, factor_h, axis=0)
+        mask_ch = m2[:channels_in, :channels_out]
+        mask[kernel_size // 2, kernel_size // 2, :, :] = mask_ch
+
+    return mask
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):
@@ -184,15 +205,28 @@ class PixelCNN:
         X is batched in to handle large data
         note this returns mean logprob over batch
         """
+        # for small batch just eval it
+        if len(X) <= bs:
+            return self.eval(X)
+        # otherwise evaluate in batches
         neg_logprobs_bits = []
+        # eval in batches
         for i in range(len(X) // bs):
             neg_logprobs_bits.append(self.eval(X[i * bs: (i + 1) * bs]))
-        extra_data = X[len(X) // bs:]
+        # mean of batches
+        mean_nll = tf.reduce_mean(neg_logprobs_bits)
+        # deal with leftover data if not a multiple of batch size
+        extra_data = X[(len(X) // bs) * bs:]
         if len(extra_data) == 1:
-            # add batch dimension
+            # add batch dimension if single data
             extra_data = [extra_data]
-        neg_logprobs_bits.append(self.eval(extra_data))
-        return tf.reduce_mean(neg_logprobs_bits)
+        if len(extra_data) > 0:
+            # evaluate extra data
+            extra_data_nll_bits = self.eval(extra_data)
+            # weight the mean of the batches and extra data
+            n_extra = len(extra_data)
+            mean_nll = ((len(X) - n_extra) / len(X)) * mean_nll + (n_extra / len(X)) * extra_data_nll_bits
+        return mean_nll
 
     def eval(self, X):
         """
@@ -212,7 +246,7 @@ class PixelCNN:
         We batch this for efficiency.
         """
         images = np.zeros((n, self.H, self.W, self.C))
-        # start with random values for first channel of first pixel
+        # start with random values for first channel of first pixel (this is updated in first pass)
         images[:, 0, 0, 0] = np.random.choice(self.n_vals, size=n)
         for h in range(self.H):
             for w in range(self.W):
@@ -225,6 +259,7 @@ class PixelCNN:
 
 
 def plot_image(image, title, n_vals=3):
+    plt.clf()
     # We use values [0, ..., 3] so we rescale colours for plotting
     plt.imshow((image * 255. / n_vals).astype(np.uint8), cmap="gray")
     if title is not None:

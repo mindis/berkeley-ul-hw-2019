@@ -57,10 +57,12 @@ class TrainingLogger:
         Give test set sum of negative log likelihoods divided by number of dimensions
         for log probability in bits per dimension
         """
+        plt.clf()
         plt.plot(self._i, self._train, label="Train")
         plt.plot(self._i, self._val, label="Validation")
         plt.axhline(y=test_set_logprob, label="Test set", linestyle="--", color="g")
         plt.legend()
+        plt.ylim(0, 1)
         plt.title("Train and Validation Log Probs during learning")
         plt.xlabel("# iterations")
         plt.ylabel("Log prob (bits per dimension)")
