@@ -95,15 +95,14 @@ class MADEModel(tf.keras.Model):
         self.N = N
 
     def build(self, input_shape, **kwargs):
-        # initial ordering is 1,1,1 ... N times then 2, 2, 2... N times, until D, D, D... N times
-        unit_numbers = np.concatenate([np.ones(self.N) * (i+1) for i in range(self.D)])
+        # get random initial unit numbers for mask, from 1 to D
+        unit_numbers = sample_unit_numbers(input_shape[1], 1, self.D)
         self.layer1 = MADELayer(64, unit_numbers, self.D)
         self.layer2 = MADELayer(64, self.layer1.unit_numbers, self.D)
         # N * D outputs
         # -1 because the output layer is a strict inequality
         self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=unit_numbers - 1,
                                       activation=None)
-        super().build(input_shape)
 
     def call(self, inputs, training=None, mask=None):
         x = self.layer1(inputs)
@@ -127,8 +126,6 @@ class MADE:
         that we then separately softmax to get the D output probabilities
         """
         self.model = MADEModel(self.D, self.N)
-        self.model.build((None, self.N * self.D))
-        self.trainable_variables = self.model.trainable_variables
 
     @tf.function
     def forward(self, x):
@@ -155,8 +152,8 @@ class MADE:
     def train_step(self, X_train):
         with tf.GradientTape() as tape:
             logprob = self.eval(X_train)
-        grads = tape.gradient(logprob, self.trainable_variables)
-        self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
+        grads = tape.gradient(logprob, self.model.trainable_variables)
+        self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob
 
     def eval(self, X):
