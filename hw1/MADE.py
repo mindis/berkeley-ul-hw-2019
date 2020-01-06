@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow_core.python.keras.layers import Dense
 
-from utils import tf_log2, gather_nd
+from utils import gather_nd, tf_log_to_base_n
 
 
 def sample_unit_numbers(n_units, min_n, n_random_vars, seed=100):
@@ -28,56 +29,33 @@ def get_mask_made(prev_unit_numbers, unit_numbers):
     return np.array(np.stack(unit_masks), dtype=np.float32)
 
 
-class MADELayer(tf.keras.layers.Layer):
+class MADELayer(Dense):
     def __init__(self, n_units, prev_unit_numbers, n_random_vars,
-                 unit_numbers=None, activation="relu"):
+                 unit_numbers=None, activation="relu", **kwargs):
         """
         n_units is the number of units in this layer
         For MADE masking:
         prev_unit_numbers is the unit numbers (maximum number of inputs to be connected to) for prev layer
         n_random_vars is the D number of random variables in the models output
         unit_numbers are the numbers for each unit in this layer, if None (default) to random sampling these numbers
-        activation to use in this layer default: "relu", can choose None for linear layer
         """
-        super().__init__()
-        self.units = n_units
+        super().__init__(n_units, activation=activation, **kwargs)
         self.prev_unit_numbers = prev_unit_numbers
         if unit_numbers is None:
-            unit_numbers = sample_unit_numbers(self.units, np.min(prev_unit_numbers), n_random_vars)
+            unit_numbers = sample_unit_numbers(n_units, np.min(prev_unit_numbers), n_random_vars)
         self.unit_numbers = unit_numbers
-        # settings
-        self.activation = tf.keras.activations.get(activation)
-        self.kernel_initializer = tf.keras.initializers.get('glorot_uniform')
-        self.bias_initializer = tf.keras.initializers.get('zeros')
-        self.kernel_regularizer = tf.keras.regularizers.get(None)
-        self.bias_regularizer = tf.keras.regularizers.get(None)
-        self.kernel_constraint = tf.keras.constraints.get(None)
-        self.bias_constraint = tf.keras.constraints.get(None)
 
     def build(self, input_shape):
-        last_dim = input_shape[-1]
-        self.kernel = self.add_weight(
-            'kernel',
-            shape=[last_dim, self.units],
-            initializer=self.kernel_initializer,
-            regularizer=self.kernel_regularizer,
-            constraint=self.kernel_constraint,
-            dtype=self.dtype,
-            trainable=True)
-        self.bias = self.add_weight(
-            'bias',
-            shape=[self.units, ],
-            initializer=self.bias_initializer,
-            regularizer=self.bias_regularizer,
-            constraint=self.bias_constraint,
-            dtype=self.dtype,
-            trainable=True)
+        super().build(input_shape)
         self.mask = get_mask_made(self.prev_unit_numbers, self.unit_numbers)
 
     def call(self, inputs, **kwargs):
-        masked_weights = self.mask * self.kernel
-        z = tf.matmul(inputs, masked_weights) + self.bias
-        return self.activation(z)
+        # mask kernel for internal op, but then return to copy of kernel after for learning
+        kernel_copy = self.kernel
+        self.kernel = self.kernel * self.mask
+        out = super().call(inputs)
+        self.kernel = kernel_copy
+        return out
 
 
 class MADEModel(tf.keras.Model):
@@ -101,23 +79,24 @@ class MADEModel(tf.keras.Model):
         self.layer2 = MADELayer(64, self.layer1.unit_numbers, self.D)
         # N * D outputs
         # -1 because the output layer is a strict inequality
-        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=unit_numbers - 1,
-                                      activation=None)
+        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, activation=None)
 
     def call(self, inputs, training=None, mask=None):
         x = self.layer1(inputs)
         x = self.layer2(x)
         x = self.output_layer(x)
-        return x
+        x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
+        return x_i_outputs
 
 
 class MADE:
-    def __init__(self):
-        self.name = "MADE"
-        self.N = 200
-        self.D = 2
+    def __init__(self, name="MADE", N=200, D=2, one_hot=True, learning_rate=0.002):
+        self.name = name
+        self.N = N
+        self.D = D
         self.setup_model()
-        self.optimizer = tf.optimizers.Adam()
+        self.optimizer = tf.optimizers.Adam(learning_rate)
+        self.one_hot = one_hot
 
     def setup_model(self):
         """
@@ -128,26 +107,42 @@ class MADE:
         self.model = MADEModel(self.D, self.N)
 
     @tf.function
-    def forward(self, x):
-        # outputs of MADE x1,1 is unconditioned x1,2 | x1,1 up to x2,N | x2,N-1, ..., x1,1
-        one_hot = tf.one_hot(x, self.N)
-        x_one_hot_flat = tf.reshape(one_hot, (-1, self.N * self.D))
-        model_outputs = self.model(x_one_hot_flat)
-        x1_outputs, x2_outputs = tf.unstack(tf.reshape(model_outputs, (-1, self.D, self.N)),axis=1)
-        # softmax and gather units of interest
-        px1s = tf.nn.softmax(x1_outputs)
-        px1 = gather_nd(px1s, x[:, 0])
-        px2_given_x1s = tf.nn.softmax(x2_outputs)
-        px2_given_x1 = gather_nd(px2_given_x1s, x[:, 1])
-        # joints is p(x2|x1)p(x1)
-        return px1 * px2_given_x1
+    def forward_logits(self, x):
+        """
+        Get outputs from model (logits for softmax)
+        """
+        if self.one_hot:
+            x = tf.cast(x, tf.int32)
+            one_hot = tf.one_hot(x, self.N)
+            x = tf.reshape(one_hot, (-1, self.N * self.D))
+        model_outputs = self.model(x)
+        return model_outputs
 
     @tf.function
-    def sum_logprob(self, probs):
+    def forward_softmax(self, x):
+        """
+        Apply softmax over N values to each D variable outputs
+        """
+        x_i_outputs = self.forward_logits(x)
+        # softmax and gather units of interest
+        pxis = tf.nn.softmax(x_i_outputs)
+        pxi = gather_nd(pxis, x)
+        # joints is product of conditionals p(x2|x1)p(x1)
+        return tf.reduce_prod(pxi, axis=-1)
+
+    @tf.function
+    def loss(self, logits, labels):
         """
         MLE in bits per dimension
+        Uses numerically stable TF with_logits methods
         """
-        return tf.reduce_mean(-tf_log2(probs)) / tf.cast(self.D, tf.float32)
+        # return tf.reduce_mean(-tf_log2(probs)) / tf.cast(self.D, tf.float32)
+        labels = tf.cast(labels, tf.int32)
+        # labels are (bs, D), logits are (bs, D, N), we want to softmax over each D separately
+        loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits))
+        # get in bits per dimension
+        neg_logprob_bit = tf_log_to_base_n(loss, 2) / self.D
+        return neg_logprob_bit
 
     def train_step(self, X_train):
         with tf.GradientTape() as tape:
@@ -157,16 +152,17 @@ class MADE:
         return logprob
 
     def eval(self, X):
-        preds = self.forward(X)
-        logprob = self.sum_logprob(preds)
+        X_float = tf.cast(X, tf.float32)
+        logits = self.forward_logits(X_float)
+        logprob = self.loss(logits, X)
         return logprob
 
     def get_probs(self):
         """
         Returns probabilities for each x1, x2, in 0, ..., 199 as a 2D array (i, j) = p(x1=i, x2=j)
         """
-        probs_flat = np.squeeze(self.forward(self.get_xs()))
-        probs = probs_flat.reshape((200, 200))
+        probs_flat = np.squeeze(self.forward_softmax(self.get_xs()))
+        probs = probs_flat.reshape((self.N, self.N))
         return probs
 
     def get_xs(self):

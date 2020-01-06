@@ -77,13 +77,13 @@ if __name__ == "__main__":
 
     # get data
     distribution = load_distribution()
-    plot_distribution_heatmap(distribution, "True distribution")
+    # plot_distribution_heatmap(distribution, "True distribution")
     X_train, X_val, X_test = get_dataset(distribution)
-    plot_samples(X_train, "Data distribution samples")
+    # plot_samples(X_train, "Data distribution samples")
 
     # mlp model
-    model_main(MLPModel(), X_train, X_val, X_test)
+    # model_main(MLPModel(), X_train, X_val, X_test)
 
-    # mlp model
+    # made model
     model_main(MADE(), X_train, X_val, X_test)
 

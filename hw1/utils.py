@@ -11,8 +11,7 @@ def gather_nd(x, inds, name="gather_nd"):
     inds (bs,)
     For ith row of x, gathers the inds[i] element.
     """
-    indices = tf.stack([tf.range(tf.shape(inds)[0], dtype=inds.dtype), inds], axis=1)
-    return tf.gather_nd(x, indices, name=name)
+    return tf.gather_nd(x, tf.expand_dims(inds, axis=-1), batch_dims=tf.rank(inds))
 
 
 def tf_log2(probs):
@@ -62,7 +61,6 @@ class TrainingLogger:
         plt.plot(self._i, self._val, label="Validation")
         plt.axhline(y=test_set_logprob, label="Test set", linestyle="--", color="g")
         plt.legend()
-        plt.ylim(0, 1)
         plt.title("Train and Validation Log Probs during learning")
         plt.xlabel("# iterations")
         plt.ylabel("Log prob (bits per dimension)")

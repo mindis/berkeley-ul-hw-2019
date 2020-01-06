@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from pixelCNN import PixelCNN, display_image_grid, plot_image
+from pixelCNNMADE import PixelCNNMADE
 from utils import get_batch, TrainingLogger
 
 
@@ -58,11 +59,10 @@ def sample_model(model, n, label=""):
     display_image_grid(samples, "Samples from PixelCNN" + label)
 
 
-def pixel_cnn_main():
+def pixel_cnn_main(model):
     """
     Run pixel CNN: Loads data, trains model and evaluates final samples and test set
     """
-    model = PixelCNN()
     X_train, X_val, X_test = load_data()
     train_and_eval_main(X_test, X_train, X_val, model)
 
@@ -105,12 +105,11 @@ def debug_data(n_samples=10000, pct_val=0.15, pct_test=0.2):
            data[int(n_samples * (pct_train+pct_val)):]
 
 
-def pixel_cnn_debug(one_pattern=True):
+def pixel_cnn_debug(model, one_pattern=True):
     """
     one_pattern: if true repeats a single example to debug overfitting to one sample
     otherwise a sample of perturbed checkerboards are used.
     """
-    model = PixelCNN(H=4, W=4)
     X_train, X_val, X_test = debug_data()
     if one_pattern:
         X_train = np.repeat(X_train[0][None], 1000, axis=0)
@@ -124,13 +123,12 @@ def plot_debug_data():
     display_image_grid(X_train[:9], None)
 
 
-def pixel_cnn_few(n=1):
+def pixel_cnn_few(model, n=1):
     """
     Run pixel CNN on subset of size n of data, for running on 1 or few images.
     Test and val set are same here.
     A debug / sanity check
     """
-    model = PixelCNN()
     X_train, _, _ = load_data()
     data = X_train[:n]
     if n == 1:
@@ -141,13 +139,24 @@ def pixel_cnn_few(n=1):
 if __name__ == "__main__":
     set_seed()
 
+    # debug data
+    # model = PixelCNN(H=4, W=4)
+    model = PixelCNNMADE(H=4, W=4)
     # plot_debug_data()
-    # pixel_cnn_debug()
+    pixel_cnn_debug(model)
 
+    # few from real data (debug)
+    # model = PixelCNN()
+    # model = PixelCNNMADE()
+    # pixel_cnn_few(model)
+
+    # full real data
     # plot_data()
-    pixel_cnn_main()
+    # model = PixelCNN()
+    # model = PixelCNNMADE()
+    # pixel_cnn_main(model)
 
-# TODO: run 1500 iter for factorised and full models (on pc)
+# TODO: run 1500 iter for factorised and full models (on pc / colab)
 # TODO: then code up MADE version.
 # TODO: code up receptive field visualisations, also do 3 x 3 grid like example masks to show
 #   how factorised / full compare in channels input path to output
