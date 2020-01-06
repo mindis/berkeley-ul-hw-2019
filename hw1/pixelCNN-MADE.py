@@ -5,132 +5,6 @@ from matplotlib import pyplot as plt
 
 from utils import tf_log_to_base_n
 
-
-def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=True):
-    """
-    raster ordering on conditioning mask
-
-    kernel_size: size N of filter N x N
-    in_channels: number of channels in
-    out_channels: number of channels out
-    isTypeA: bool, true if type A mask, otherwise type B mask used.
-        Type A takes context and previous channels (but not its own channel)
-        Type B takes context, prev channels and connected to own channel.
-    factorised: bool, if True then probabilities treated independently P(r)p(g)p(b)
-        so mask type A all have centre off and B all have it on.
-        Otherwise the full joint as in the paper are used p(r)p(g|r)p(b|r,g)
-        and A and B masks are different for each channel to allow this. Repeated
-        with modulo if channel in or out != n_channels so if 4 channels then it's R, G, B, R etc.
-
-    Returns masks of shape (kernel_size, kernel_size, # in channels, # out channels)
-    """
-    mask = np.ones((kernel_size, kernel_size, n_channels, n_channels))
-    centre = kernel_size // 2
-    # bottom rows 0s
-    mask[centre+1:, :, :, :] = 0.
-    # right of centre on centre row 0s
-    mask[centre:, centre+1:, :, :] = 0.
-    # deal with centre based on mask "way": factorised or full
-    # rows are channels in prev layer, columns are channels in this layer
-    if factorised:
-        if isTypeA:
-            mask[centre, centre, :, :] = 0.
-    else:
-        # centre depends on mask type A or B
-        k = 0 if isTypeA else 1
-        # reverse i and j to get RGB ordering (other way would be BGR)
-        i, j = np.triu_indices(n_channels, k)
-        mask[centre, centre, j, i] = 0.
-
-    # tile the masks to potentially more than needed, then retrieve the number of channels wanted
-    mask = np.tile(mask, (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels))))
-    return mask[:, :, :in_channels, :out_channels]
-
-
-class MaskedCNN(tf.keras.layers.Conv2D):
-    def __init__(self, n_filters, kernel_size, isTypeA, activation=None, **kwargs):
-        """
-        n_filters and kernel_size for conv layer
-        isTypeA for mask type
-        """
-        assert isinstance(kernel_size, int), "Masked CNN requires square n x n kernel"
-        super(MaskedCNN, self).__init__(n_filters, kernel_size, padding="SAME",
-                                        activation=activation, **kwargs)
-        self.isTypeA = isTypeA
-
-    def build(self, input_shape):
-        super().build(input_shape)
-        (_, _, in_channels, out_channels) = self.kernel.shape
-        self.mask = get_pixelcnn_mask(self.kernel_size[0], in_channels, out_channels, self.isTypeA)
-
-    def call(self, inputs):
-        # mask kernel for internal conv op, but then return to copy of kernel after for learning
-        kernel_copy = self.kernel
-        self.kernel = self.kernel * self.mask
-        out = super().call(inputs)
-        self.kernel = kernel_copy
-        return out
-
-
-class MaskedResidualBlock(tf.keras.layers.Layer):
-    def __init__(self, n_filters):
-        super().__init__()
-        self.n_filters = n_filters
-
-    def build(self, input_shape):
-        # 1x1 relu filter, then 3x3 then 1x1
-        self.layer1 = MaskedCNN(self.n_filters, 1, False)
-        self.layer2 = MaskedCNN(self.n_filters, 3, False)
-        self.layer3 = MaskedCNN(self.n_filters * 2, 1, False)
-
-    def call(self, inputs):
-        """
-        x is the inputs, [image, (cx, cy)]
-        """
-        # other layers take img and cur pixel location
-        x = tf.keras.layers.ReLU()(inputs)
-        x = self.layer1(x)
-        x = tf.keras.layers.ReLU()(x)
-        x = self.layer2(x)
-        x = tf.keras.layers.ReLU()(x)
-        x = self.layer3(x)
-        return inputs + x
-
-
-class PixelCNNModel(tf.keras.Model):
-    """
-    Returns logits for softmax (N, h*w, c, n_vals)
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.n_vals = 4
-        self.output_channels = 3
-        self.n_filters = 128
-
-    def build(self, input_shape, **kwargs):
-        self.layer1 = MaskedCNN(self.n_filters * 2, 7, True)
-        self.res_layers = [MaskedResidualBlock(self.n_filters) for _ in range(12)]
-        # want ReLU applied first as per paper
-        self.relu_conv1x1 = [tf.keras.layers.ReLU(),
-                             MaskedCNN(self.n_filters, 1, False),
-                             tf.keras.layers.ReLU(),
-                             MaskedCNN(self.n_filters, 1, False)]
-        self.output_conv = [tf.keras.layers.ReLU(),
-                            MaskedCNN(self.n_vals * self.output_channels, 1, False)]
-
-    def call(self, inputs, training=None, mask=None):
-        img = tf.cast(inputs, tf.float32)
-        x = self.layer1(img)
-        for layer in self.res_layers:
-            x = layer(x)
-        for layer in self.relu_conv1x1:
-            x = layer(x)
-        for layer in self.output_conv:
-            x = layer(x)
-        return x
-
-
 # eval, eval_batch, train_step, forward, loss, sample
 class PixelCNN:
     def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=10e-4):
@@ -147,7 +21,12 @@ class PixelCNN:
         self.setup_model()
 
     def setup_model(self):
-        self.model = PixelCNNModel()
+        # TODO: make sure uses factorised?
+        pixelcnn = PixelCNNModel()
+        flatten = Flatten()(pixelcnn)
+        # TODO: rewrited MADE layer to accept different input size to output?
+        #   need 3 x 4 output, but want 28 * 28 * 3 * 4 input? or narrow it down with a dense layer?
+        self.model = MADE
 
     def loss(self, labels, logits):
         """

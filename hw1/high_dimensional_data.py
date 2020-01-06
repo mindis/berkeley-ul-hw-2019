@@ -147,3 +147,7 @@ if __name__ == "__main__":
     # plot_data()
     pixel_cnn_main()
 
+# TODO: run 1500 iter for factorised and full models (on pc)
+# TODO: then code up MADE version.
+# TODO: code up receptive field visualisations, also do 3 x 3 grid like example masks to show
+#   how factorised / full compare in channels input path to output
