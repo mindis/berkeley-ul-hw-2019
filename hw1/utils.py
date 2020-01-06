@@ -29,8 +29,8 @@ def tf_log_to_base_n(nat_log, n):
 
 
 def get_batch(X, bs):
-    batch_size = min(len(X) - 1, bs)
-    inds = np.random.choice(np.arange(len(X) - 1), batch_size, replace=False)
+    batch_size = min(len(X), bs)
+    inds = np.random.choice(np.arange(len(X)), batch_size, replace=False)
     return X[inds]
 
 

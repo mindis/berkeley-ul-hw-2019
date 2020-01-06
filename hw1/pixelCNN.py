@@ -6,55 +6,45 @@ from matplotlib import pyplot as plt
 from utils import tf_log_to_base_n
 
 
-# def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3):
-#     """
-#     raster ordering on conditioning mask
-#     channel ordering is R, G, B repeated with modulo if channel in or out != n_channels
-#     so if 4 channels then it's R, G, B, R etc.
-#
-#     kernel_size: size N of filter N x N
-#     in_channels: number of channels in
-#     out_channels: number of channels out
-#     isTypeA: bool, true if type A mask, otherwise type B mask used.
-#         Type A takes context and previous channels (but not its own channel)
-#         Type B takes context, prev channels and connected to own channel.
-#
-#     Returns mask of shape (kernel_size, kernel_size, # in channels, # out channels)
-#     """
-#     mask = np.ones((kernel_size, kernel_size, n_channels, n_channels))
-#     centre = kernel_size // 2
-#     # bottom rows 0s
-#     mask[centre+1:, :, :, :] = 0.
-#     # right of centre on centre row 0s
-#     mask[centre:, centre+1:, :, :] = 0.
-#     # deal with centre based on mask type
-#     k = 0 if isTypeA else 1
-#     i, j = np.triu_indices(n_channels, k)
-#     mask[centre, centre, i, j] = 0.
-#     # tile the masks to potentially more than needed, then retrieve the number of channels wanted
-#     mask = np.tile(mask, (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels))))
-#     return mask[:, :, :in_channels, :out_channels]
+def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=True):
+    """
+    raster ordering on conditioning mask
 
+    kernel_size: size N of filter N x N
+    in_channels: number of channels in
+    out_channels: number of channels out
+    isTypeA: bool, true if type A mask, otherwise type B mask used.
+        Type A takes context and previous channels (but not its own channel)
+        Type B takes context, prev channels and connected to own channel.
+    factorised: bool, if True then probabilities treated independently P(r)p(g)p(b)
+        so mask type A all have centre off and B all have it on.
+        Otherwise the full joint as in the paper are used p(r)p(g|r)p(b|r,g)
+        and A and B masks are different for each channel to allow this. Repeated
+        with modulo if channel in or out != n_channels so if 4 channels then it's R, G, B, R etc.
 
-def get_pixelcnn_mask(kernel_size, channels_in, channels_out, mask_typeA, input_channels=3, factorized=True):
-    mask = np.zeros(shape=(kernel_size, kernel_size, channels_in, channels_out), dtype=np.float32)
-    mask[:kernel_size // 2, :, :, :] = 1
-    mask[kernel_size // 2, :kernel_size // 2, :, :] = 1
-
-    if factorized:
-        if not mask_typeA:
-            mask[kernel_size // 2, kernel_size // 2, :, :] = 1
+    Returns masks of shape (kernel_size, kernel_size, # in channels, # out channels)
+    """
+    mask = np.ones((kernel_size, kernel_size, n_channels, n_channels))
+    centre = kernel_size // 2
+    # bottom rows 0s
+    mask[centre+1:, :, :, :] = 0.
+    # right of centre on centre row 0s
+    mask[centre:, centre+1:, :, :] = 0.
+    # deal with centre based on mask type
+    # rows are channels in prev layer, columns are channels in this layer
+    k = 0 if isTypeA else 1
+    i, j = np.triu_indices(n_channels, k)
+    # factorised or full joint?
+    if factorised:
+        if isTypeA:
+            mask[centre, centre, :, :] = 0.
     else:
-        factor_w = int(np.ceil(channels_out / input_channels))
-        factor_h = int(np.ceil(channels_in / input_channels))
-        k = mask_typeA
-        m0 = np.triu(np.ones(dtype=np.float32, shape=(input_channels, input_channels)), k)
-        m1 = np.repeat(m0, factor_w, axis=1)
-        m2 = np.repeat(m1, factor_h, axis=0)
-        mask_ch = m2[:channels_in, :channels_out]
-        mask[kernel_size // 2, kernel_size // 2, :, :] = mask_ch
+        # reverse i and j to get RGB ordering (other way would be BGR)
+        mask[centre, centre, j, i] = 0.
 
-    return mask
+    # tile the masks to potentially more than needed, then retrieve the number of channels wanted
+    mask = np.tile(mask, (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels))))
+    return mask[:, :, :in_channels, :out_channels]
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):
@@ -91,7 +81,7 @@ class MaskedResidualBlock(tf.keras.layers.Layer):
         # 1x1 relu filter, then 3x3 then 1x1
         self.layer1 = MaskedCNN(self.n_filters, 1, False)
         self.layer2 = MaskedCNN(self.n_filters, 3, False)
-        self.layer3 = MaskedCNN(self.n_filters*2, 1, False)
+        self.layer3 = MaskedCNN(self.n_filters * 2, 1, False)
 
     def call(self, inputs):
         """
@@ -111,6 +101,7 @@ class PixelCNNModel(tf.keras.Model):
     """
     Returns logits for softmax (N, h*w, c, n_vals)
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_vals = 4
@@ -118,14 +109,15 @@ class PixelCNNModel(tf.keras.Model):
         self.n_filters = 128
 
     def build(self, input_shape, **kwargs):
-        self.layer1 = MaskedCNN(self.n_filters*2, 7, True)
+        self.layer1 = MaskedCNN(self.n_filters * 2, 7, True)
         self.res_layers = [MaskedResidualBlock(self.n_filters) for _ in range(12)]
         # want ReLU applied first as per paper
         self.relu_conv1x1 = [tf.keras.layers.ReLU(),
                              MaskedCNN(self.n_filters, 1, False),
                              tf.keras.layers.ReLU(),
                              MaskedCNN(self.n_filters, 1, False)]
-        self.output_conv = MaskedCNN(self.n_vals * self.output_channels, 1, False)
+        self.output_conv = [tf.keras.layers.ReLU(),
+                            MaskedCNN(self.n_vals * self.output_channels, 1, False)]
 
     def call(self, inputs, training=None, mask=None):
         img = tf.cast(inputs, tf.float32)
@@ -134,22 +126,23 @@ class PixelCNNModel(tf.keras.Model):
             x = layer(x)
         for layer in self.relu_conv1x1:
             x = layer(x)
-        x = self.output_conv(x)
+        for layer in self.output_conv:
+            x = layer(x)
         # output layer softmax split into n_channels
         n, h, w, _ = tf.shape(inputs)
-        x = tf.reshape(x, (n, h,  w, self.output_channels, self.n_vals))
+        x = tf.reshape(x, (n, h, w, self.output_channels, self.n_vals))
         return x
 
 
 # eval, eval_batch, train_step, forward, loss, sample
 class PixelCNN:
-    def __init__(self, H=28, W=28, C=3, n_vals=4):
+    def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=10e-4):
         """
         H, W, C image shape: height, width, channels
         n_vals the number of values each channel can take on
         """
         self.name = "PixelCNN"
-        self.optimizer = tf.optimizers.Adam(learning_rate=10e-3)
+        self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
         self.H = H
         self.W = W
         self.C = C
@@ -325,5 +318,9 @@ def test_maskB():
 
 
 if __name__ == "__main__":
-    test_maskA()
-    test_maskB()
+    # test_maskA()
+    # test_maskB()
+
+    kernel_size, inc, outc, typeA = 5, 3, 4, True
+    mask = get_pixelcnn_mask(kernel_size, inc, outc, typeA)
+    display_mask(mask, None)

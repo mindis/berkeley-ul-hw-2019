@@ -21,7 +21,7 @@ def set_seed(seed=100):
     tf.random.set_seed(seed)
 
 
-def train_model(X_train, X_val, model, training_logger, n_iters=1000, bs=128, log_every=100, sample_every=500):
+def train_model(X_train, X_val, model, training_logger, n_iters=1500, bs=128, log_every=100, sample_every=500):
     """
     Run training loop.
     Note sampling and validation take a while so we do them periodically.
@@ -49,8 +49,8 @@ def train_model(X_train, X_val, model, training_logger, n_iters=1000, bs=128, lo
 def eval_model(model, X_test, training_logger, bs=128):
     test_logprob = model.eval_batch(X_test, bs=bs)
     training_logger.plot(float(test_logprob))
-    # this can take a while
-    sample_model(model, 100, " final")
+    # this can take a while, less samples is quicker, ideally 100
+    sample_model(model, 10, " final")
 
 
 def sample_model(model, n, label=""):
@@ -124,7 +124,7 @@ def plot_debug_data():
     display_image_grid(X_train[:9], None)
 
 
-def pixel_cnn_few(n=3):
+def pixel_cnn_few(n=1):
     """
     Run pixel CNN on subset of size n of data, for running on 1 or few images.
     Test and val set are same here.
@@ -133,6 +133,8 @@ def pixel_cnn_few(n=3):
     model = PixelCNN()
     X_train, _, _ = load_data()
     data = X_train[:n]
+    if n == 1:
+        data = np.repeat(data, 2, axis=0)
     train_and_eval_main(data, data, data, model)
 
 
@@ -143,8 +145,5 @@ if __name__ == "__main__":
     # pixel_cnn_debug()
 
     # plot_data()
-    # pixel_cnn_main()
-    # TODO:
-    #  1. try both theirs and mine with lower LR on 1 example and 3 examples
-    #  2. Channel ordering on my masking wrong?
-    pixel_cnn_few()
+    pixel_cnn_main()
+
