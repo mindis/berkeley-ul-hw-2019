@@ -1,0 +1,5 @@
+tensorflow-gpu==2.0.0	# GPU version of TensorFlow.
+matplotlib
+numpy
+seaborn
+tensorflow-probability
