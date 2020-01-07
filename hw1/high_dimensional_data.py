@@ -3,6 +3,7 @@ import tensorflow as tf
 from pixelCNN import PixelCNN, display_image_grid, plot_image
 from pixelCNNMADE import PixelCNNMADE
 from utils import get_batch, TrainingLogger
+import argparse
 
 
 def load_data(pct_val=0.15):
@@ -139,24 +140,23 @@ def pixel_cnn_few(model, n=1):
 if __name__ == "__main__":
     set_seed()
 
-    # debug data
-    # model = PixelCNN(H=4, W=4)
-    # model = PixelCNNMADE(H=4, W=4)
-    # plot_debug_data()
-    # pixel_cnn_debug(model)
+    models = {"PixelCNN": PixelCNN, "PixelCNN-MADE": PixelCNNMADE}
+    tasks = {"debug": pixel_cnn_debug, "few": pixel_cnn_few, "main": pixel_cnn_main}
 
-    # few from real data (debug)
-    # model = PixelCNN()
-    model = PixelCNNMADE()
-    pixel_cnn_few(model)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("Model", help="Model to train", choices=models.keys())
+    parser.add_argument("Dataset", help="Dataset to run model on", choices=tasks.keys())
+    args = parser.parse_args()
 
-    # full real data
-    # plot_data()
-    # model = PixelCNN()
-    # model = PixelCNNMADE()
-    # pixel_cnn_main(model)
+    model_uninit = models[args.Model]
+    task = args.Dataset
+    if task == "debug":
+        model = model_uninit(H=4, W=4)
+    else:
+        model = model_uninit()
+    tasks[task](model)
 
-# TODO: run 1500 iter for factorised and full models (on pc / colab)
 # TODO: MADE seems to work on debug chequerboard, try on single digit then on full! Debug
+# TODO: run 1500 iter for factorised and full models (on pc / colab)
 # TODO: code up receptive field visualisations, also do 3 x 3 grid like example masks to show
 #   how factorised / full compare in channels input path to output
