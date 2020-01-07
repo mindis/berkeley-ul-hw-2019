@@ -59,10 +59,11 @@ class MADELayer(Dense):
 
 
 class MADEModel(tf.keras.Model):
-    def __init__(self, D, N, *args, **kwargs):
+    def __init__(self, D, N, n_hidden_units, *args, **kwargs):
         """
         D is the number of variables.
         N is the number of values for this variable, so each of the D variables can take on
+        n_hidden_units is number of units in hidden layers
         values [0, N-1] for N possible values.
         eg. x1, x2 both [0, 9], D = 2, N = 10
         Because we extend to non-binary, multiple inputs/outputs can be for the same
@@ -71,12 +72,13 @@ class MADEModel(tf.keras.Model):
         super().__init__(*args, **kwargs)
         self.D = D
         self.N = N
+        self.n_hidden_units = n_hidden_units
 
     def build(self, input_shape, **kwargs):
         # get random initial unit numbers for mask, from 1 to D
         in_unit_numbers = sample_unit_numbers(input_shape[1], 1, self.D)
-        self.layer1 = MADELayer(64, in_unit_numbers, self.D)
-        self.layer2 = MADELayer(64, self.layer1.unit_numbers, self.D)
+        self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D)
+        self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D)
         # N * D outputs
         # -1 because the output layer is a strict inequality
         out_unit_numbers = sample_unit_numbers(self.N * self.D, 1, self.D) - 1
@@ -91,13 +93,14 @@ class MADEModel(tf.keras.Model):
 
 
 class MADE:
-    def __init__(self, name="MADE", N=200, D=2, one_hot=True, learning_rate=0.002):
+    def __init__(self, name="MADE", N=200, D=2, one_hot=True, n_hidden_units=64, learning_rate=0.002):
         self.name = name
         self.N = N
         self.D = D
         self.setup_model()
         self.optimizer = tf.optimizers.Adam(learning_rate)
         self.one_hot = one_hot
+        self.n_hidden_units = n_hidden_units
 
     def setup_model(self):
         """
@@ -105,7 +108,7 @@ class MADE:
         So we MADE with D * N input and output units but that can only take D MADE unit numbers
         that we then separately softmax to get the D output probabilities
         """
-        self.model = MADEModel(self.D, self.N)
+        self.model = MADEModel(self.D, self.N, self.n_hidden_units)
 
     @tf.function
     def forward_logits(self, x):

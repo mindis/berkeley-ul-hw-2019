@@ -1,0 +1,10 @@
+PixelCNN
+With factorised works on debug and few (single)
+With full works on debug, bit dubious but seems to learn something on few (single)
+* Try both on main
+
+PixelCNN-MADE
+With factorised works on debug and few (single)
+Factorised on main: loss improves but samples not great
+* Try factorised on main lower LR
+* Try full on debug and few (single) and then full

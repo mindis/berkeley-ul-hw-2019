@@ -50,13 +50,12 @@ class PixelCNNMADE(MADE):
         N is number of values per variable
         """
         name = "PixelCNN-MADE"
-        self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
         self.H = H
         self.W = W
         self.C = C
         self.n_bottleneck = n_bottleneck
         # calls setup model and init optimiser
-        super().__init__(name, N, self.H * self.W * self.C, one_hot=False)
+        super().__init__(name, N, self.H * self.W * self.C, n_hidden_units=124, one_hot=False, learning_rate=learning_rate, )
 
     def setup_model(self):
         """

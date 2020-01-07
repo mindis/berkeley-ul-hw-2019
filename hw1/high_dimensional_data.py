@@ -156,7 +156,6 @@ if __name__ == "__main__":
         model = model_uninit()
     tasks[task](model)
 
-# TODO: run 1500 iter on full data for factorised and full models (on pc / colab)
-# TODO: MADE on full data doesnt look so bright - factorised working on debug and few tests but try full with MADE too?
+# TODO: run main for factorised and full on pixelcnn and pixelcnn-made (on pc / colab)
 # TODO: code up receptive field visualisations, also do 3 x 3 grid like example masks to show
 #   how factorised / full compare in channels input path to output
