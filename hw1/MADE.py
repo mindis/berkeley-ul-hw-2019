@@ -74,12 +74,13 @@ class MADEModel(tf.keras.Model):
 
     def build(self, input_shape, **kwargs):
         # get random initial unit numbers for mask, from 1 to D
-        unit_numbers = sample_unit_numbers(input_shape[1], 1, self.D)
-        self.layer1 = MADELayer(64, unit_numbers, self.D)
+        in_unit_numbers = sample_unit_numbers(input_shape[1], 1, self.D)
+        self.layer1 = MADELayer(64, in_unit_numbers, self.D)
         self.layer2 = MADELayer(64, self.layer1.unit_numbers, self.D)
         # N * D outputs
         # -1 because the output layer is a strict inequality
-        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, activation=None)
+        out_unit_numbers = sample_unit_numbers(self.N * self.D, 1, self.D) - 1
+        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers, activation=None)
 
     def call(self, inputs, training=None, mask=None):
         x = self.layer1(inputs)
@@ -126,7 +127,16 @@ class MADE:
         x_i_outputs = self.forward_logits(x)
         # softmax and gather units of interest
         pxis = tf.nn.softmax(x_i_outputs)
-        pxi = gather_nd(pxis, x)
+        return pxis
+
+    @tf.function
+    def forward_softmax_gather(self, x):
+        """
+        Apply softmax over N values to each D variable outputs and gather the probs of the values in x
+        """
+        pxis = self.forward_softmax(x)
+        x_int = tf.cast(x, tf.int32)
+        pxi = gather_nd(pxis, x_int)
         # joints is product of conditionals p(x2|x1)p(x1)
         return tf.reduce_prod(pxi, axis=-1)
 
@@ -140,8 +150,8 @@ class MADE:
         labels = tf.cast(labels, tf.int32)
         # labels are (bs, D), logits are (bs, D, N), we want to softmax over each D separately
         loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits))
-        # get in bits per dimension
-        neg_logprob_bit = tf_log_to_base_n(loss, 2) / self.D
+        # get in bits
+        neg_logprob_bit = tf_log_to_base_n(loss, 2)
         return neg_logprob_bit
 
     def train_step(self, X_train):
@@ -161,7 +171,7 @@ class MADE:
         """
         Returns probabilities for each x1, x2, in 0, ..., 199 as a 2D array (i, j) = p(x1=i, x2=j)
         """
-        probs_flat = np.squeeze(self.forward_softmax(self.get_xs()))
+        probs_flat = np.squeeze(self.forward_softmax_gather(self.get_xs()))
         probs = probs_flat.reshape((self.N, self.N))
         return probs
 

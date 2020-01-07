@@ -51,7 +51,7 @@ def eval_model(model, X_test, training_logger, bs=128):
     test_logprob = model.eval_batch(X_test, bs=bs)
     training_logger.plot(float(test_logprob))
     # this can take a while, less samples is quicker, ideally 100
-    sample_model(model, 10, " final")
+    sample_model(model, 9, " final")
 
 
 def sample_model(model, n, label=""):
@@ -113,7 +113,7 @@ def pixel_cnn_debug(model, one_pattern=True):
     X_train, X_val, X_test = debug_data()
     if one_pattern:
         X_train = np.repeat(X_train[0][None], 1000, axis=0)
-        train_and_eval_main(X_train, X_train, X_train, model, log_every=10, n_iters=100)
+        train_and_eval_main(X_train, X_train, X_train, model, log_every=10, n_iters=50)
     else:
         train_and_eval_main(X_test, X_train, X_val, model, log_every=10, n_iters=100)
 
@@ -141,14 +141,14 @@ if __name__ == "__main__":
 
     # debug data
     # model = PixelCNN(H=4, W=4)
-    model = PixelCNNMADE(H=4, W=4)
+    # model = PixelCNNMADE(H=4, W=4)
     # plot_debug_data()
-    pixel_cnn_debug(model)
+    # pixel_cnn_debug(model)
 
     # few from real data (debug)
     # model = PixelCNN()
-    # model = PixelCNNMADE()
-    # pixel_cnn_few(model)
+    model = PixelCNNMADE()
+    pixel_cnn_few(model)
 
     # full real data
     # plot_data()
@@ -157,6 +157,6 @@ if __name__ == "__main__":
     # pixel_cnn_main(model)
 
 # TODO: run 1500 iter for factorised and full models (on pc / colab)
-# TODO: then code up MADE version.
+# TODO: MADE seems to work on debug chequerboard, try on single digit then on full! Debug
 # TODO: code up receptive field visualisations, also do 3 x 3 grid like example masks to show
 #   how factorised / full compare in channels input path to output
