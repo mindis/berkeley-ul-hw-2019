@@ -24,10 +24,12 @@ class PixelCNNMADEModel(Model):
         # TODO: how to do made for every pixel? output H * W * C?
         """
         Model is
-        Image -> PixelCNN -> Flatten -> Dense layer (bottleneck reduce dimensionality)
+        Image -> PixelCNN (bs, H, W, C * N) -> Flatten -> Dense layer (bottleneck reduce dimensionality)
         -> MADE (D = H x W x C variables for each channel each pixel)
         """
-        self.layers_list = [PixelCNNModel(), Flatten(), Dense(self.n_bottleneck),
+        self.layers_list = [PixelCNNModel(self.H, self.W, self.C, self.N, flat=True),
+                            Flatten(),
+                            Dense(self.n_bottleneck),
                             MADEModel(self.H * self.W * self.C, self.N)]
         super().build(input_shape)
 

@@ -102,11 +102,18 @@ class PixelCNNModel(tf.keras.Model):
     Returns logits for softmax (N, h*w, c, n_vals)
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, H, W, C, n_vals, flat=False, *args, **kwargs):
+        """
+        :param flat: whether to keep flat or reshape each value for each channel variable
+            if true then (bs, H, W, C * N) otherwise reshapes into logits (bs, H, W, C, N)
+        """
         super().__init__(*args, **kwargs)
-        self.n_vals = 4
-        self.output_channels = 3
+        self.n_vals = n_vals
+        self.H = H
+        self.W = W
+        self.C = C
         self.n_filters = 128
+        self.flat = flat
 
     def build(self, input_shape, **kwargs):
         self.layer1 = MaskedCNN(self.n_filters * 2, 7, True)
@@ -117,7 +124,7 @@ class PixelCNNModel(tf.keras.Model):
                              tf.keras.layers.ReLU(),
                              MaskedCNN(self.n_filters, 1, False)]
         self.output_conv = [tf.keras.layers.ReLU(),
-                            MaskedCNN(self.n_vals * self.output_channels, 1, False)]
+                            MaskedCNN(self.n_vals * self.C, 1, False)]
 
     def call(self, inputs, training=None, mask=None):
         img = tf.cast(inputs, tf.float32)
@@ -128,6 +135,8 @@ class PixelCNNModel(tf.keras.Model):
             x = layer(x)
         for layer in self.output_conv:
             x = layer(x)
+        if not self.flat:
+            x = tf.reshape(x, (-1, self.H, self.W, self.C, self.n_vals))
         return x
 
 
@@ -147,7 +156,7 @@ class PixelCNN:
         self.setup_model()
 
     def setup_model(self):
-        self.model = PixelCNNModel()
+        self.model = PixelCNNModel(self.H, self.W, self.C, self.n_vals)
 
     def loss(self, labels, logits):
         """

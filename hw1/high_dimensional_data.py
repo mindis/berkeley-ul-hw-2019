@@ -156,7 +156,7 @@ if __name__ == "__main__":
         model = model_uninit()
     tasks[task](model)
 
-# TODO: MADE seems to work on debug chequerboard, try on single digit then on full! Debug
-# TODO: run 1500 iter for factorised and full models (on pc / colab)
+# TODO: run 1500 iter on full data for factorised and full models (on pc / colab)
+# TODO: MADE on full data doesnt look so bright - factorised working on debug and few tests but try full with MADE too?
 # TODO: code up receptive field visualisations, also do 3 x 3 grid like example masks to show
 #   how factorised / full compare in channels input path to output
