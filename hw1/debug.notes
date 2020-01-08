@@ -1,8 +1,12 @@
 PixelCNN
-With factorised works on debug and few (single)
-With full works on debug, bit dubious but seems to learn something on few (single)
-Factorised on main - loss improves but bit jumpy, final samples seem to be getting there but not great
+    Factorised
+        works on debug and few (single)
+        Main - loss improves but bit jumpy, final samples seem to be getting there but not great
+    Full
+        works on debug, bit dubious but seems to learn something on few (single)
+        Main w/ 4,000 iterations -
 * try more iterations for both - 3-5,000
+* try integrate some of other's code and try on colab
 
 PixelCNN-MADE
 With factorised works on debug and few (single)
@@ -10,3 +14,6 @@ Factorised on main: loss improves but samples not great
 Full on main: seems p good, loss improves and samples seem to be getting there
 * try more iterations for both - 3-5,000
 * Try full on debug and few (single) and then main
+
+
+* setup other code as model then try running it to compare and debug
