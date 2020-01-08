@@ -172,8 +172,10 @@ class PixelCNNDS:
                     print(h, w, c)
                     model_preds = self.forward_softmax(images)
                     # categorical over pixel values
-                    pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
-                    images[:, h, w, c] = self.sess.run(pixel_dist.sample(1))[0]
+                    # pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
+                    # images[:, h, w, c] = self.sess.run(pixel_dist.sample(1))[0]
+                    for i in range(n):
+                        images[i, h, w, c] = np.random.choice(self.N, p=model_preds[i, h, w, c])
         return images
 
     def forward_softmax(self, X):
