@@ -12,13 +12,14 @@ from utils import tf_log_to_base_n, tf_log2, gather_nd
 
 # wrap model so it can be called in MADE
 class PixelCNNMADEModel(Model):
-    def __init__(self, H, W, C, N, n_bottleneck, *args, **kwargs):
+    def __init__(self, H, W, C, N, n_bottleneck, n_hidden_units, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_bottleneck = n_bottleneck
         self.H = H
         self.W = W
         self.C = C
         self.N = N
+        self.n_hidden_units = n_hidden_units
 
     def build(self, input_shape):
         # TODO: how to do made for every pixel? output H * W * C?
@@ -30,7 +31,7 @@ class PixelCNNMADEModel(Model):
         self.layers_list = [PixelCNNModel(self.H, self.W, self.C, self.N, flat=True),
                             Flatten(),
                             Dense(self.n_bottleneck),
-                            MADEModel(self.H * self.W * self.C, self.N)]
+                            MADEModel(self.H * self.W * self.C, self.N, self.n_hidden_units)]
         super().build(input_shape)
 
     def call(self, x, **kwargs):
@@ -44,7 +45,7 @@ class PixelCNNMADEModel(Model):
 
 # overwrite MADE
 class PixelCNNMADE(MADE):
-    def __init__(self, H=28, W=28, C=3, N=4, learning_rate=10e-4, n_bottleneck=512):
+    def __init__(self, H=28, W=28, C=3, N=4, learning_rate=10e-4, n_bottleneck=512, n_hidden_units=124):
         """
         H, W, C image shape: height, width, channels
         N is number of values per variable
@@ -54,6 +55,7 @@ class PixelCNNMADE(MADE):
         self.W = W
         self.C = C
         self.n_bottleneck = n_bottleneck
+        self.n_hidden_units = n_hidden_units
         # calls setup model and init optimiser
         super().__init__(name, N, self.H * self.W * self.C, n_hidden_units=124, one_hot=False, learning_rate=learning_rate, )
 
@@ -63,7 +65,7 @@ class PixelCNNMADE(MADE):
         """
         # TODO: make sure pixel cnn uses factorised? but full joint should be ok too?
         # TODO: larger n hidden units in MADE?
-        self.model = PixelCNNMADEModel(self.H, self.W, self.C, self.N, self.n_bottleneck)
+        self.model = PixelCNNMADEModel(self.H, self.W, self.C, self.N, self.n_bottleneck, self.n_hidden_units)
 
     def eval_batch(self, X, bs=128):
         """
