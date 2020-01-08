@@ -169,6 +169,7 @@ class PixelCNNDS:
         for h in range(self.H):
             for w in range(self.W):
                 for c in range(self.C):
+                    print(h, w, c)
                     model_preds = self.forward_softmax(images)
                     # categorical over pixel values
                     pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
