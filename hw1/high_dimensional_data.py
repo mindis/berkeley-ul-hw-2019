@@ -38,8 +38,6 @@ def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=128, lo
     :param sample_at: iterations to sample 4 images at multiples of
     """
     for i in range(n_iters+1):
-        sample_model(model, 4, " " + str(i))
-
         batch = get_batch(X_train, bs)
         logprob = model.train_step(batch)
         if i % log_every == 0:
