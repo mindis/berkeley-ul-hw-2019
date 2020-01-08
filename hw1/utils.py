@@ -46,7 +46,6 @@ class TrainingLogger:
         i - iteration
         train, val - set log probabilities in bits per dimension
         """
-        print(i, train, val)
         print("{} {:>8}:\t Train: {:<6.3f} Val: {:<6.3f}".format(time.strftime("%d %b %Y %H:%M:%S"), i, train, val))
         self._i.append(i)
         self._train.append(train)

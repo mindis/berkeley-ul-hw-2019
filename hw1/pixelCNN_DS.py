@@ -142,7 +142,7 @@ class PixelCNNDS:
         for i in range(len(X) // bs):
             neg_logprobs_bits.append(self.eval(X[i * bs: (i + 1) * bs]))
         # mean of batches
-        mean_nll = np.reduce_mean(neg_logprobs_bits)
+        mean_nll = np.mean(neg_logprobs_bits)
         # deal with leftover data if not a multiple of batch size
         extra_data = X[(len(X) // bs) * bs:]
         if len(extra_data) == 1:
