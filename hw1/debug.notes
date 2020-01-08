@@ -2,10 +2,11 @@ PixelCNN
 With factorised works on debug and few (single)
 With full works on debug, bit dubious but seems to learn something on few (single)
 Factorised on main - loss improves but bit jumpy, final samples seem to be getting there but not great
-* Try both on main
+* try more iterations for both - 3-5,000
 
 PixelCNN-MADE
 With factorised works on debug and few (single)
 Factorised on main: loss improves but samples not great
-* Try factorised on main lower LR
-* Try full on debug and few (single) and then full
+Full on main: seems p good, loss improves and samples seem to be getting there
+* try more iterations for both - 3-5,000
+* Try full on debug and few (single) and then main
