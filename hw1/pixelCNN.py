@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from utils import tf_log_to_base_n
 
 
-def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=True):
+def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=False):
     """
     raster ordering on conditioning mask
 

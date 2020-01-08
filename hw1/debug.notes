@@ -1,6 +1,7 @@
 PixelCNN
 With factorised works on debug and few (single)
 With full works on debug, bit dubious but seems to learn something on few (single)
+Factorised on main - loss improves but bit jumpy, final samples seem to be getting there but not great
 * Try both on main
 
 PixelCNN-MADE
