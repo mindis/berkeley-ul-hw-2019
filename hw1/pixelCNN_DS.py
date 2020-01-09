@@ -80,7 +80,7 @@ def res_block(x_in, channels_out=128, input_channels=None, factorized=True):
 
 
 class PixelCNNDS:
-    def __init__(self, H=28, W=28, C=3, N=4, factorized=True, learning_rate=10e-4):
+    def __init__(self, H=28, W=28, C=3, N=4, factorized=True, learning_rate=10e-3):
         self.name = "PixelCNN-DS"
         self.H = H
         self.W = W

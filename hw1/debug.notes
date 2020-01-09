@@ -8,6 +8,7 @@ PixelCNN
         works on debug, bit dubious but seems to learn something on few (single)
         Main w/ 4,000 iterations -
 * try 4,000 iterations for factorised
+* try 4k iter on full w new batching
 
 PixelCNN-MADE
 With factorised works on debug and few (single)
@@ -23,3 +24,5 @@ on main, lowest loss: 0.134 in 2,500 iterations, samples good quality
     x DONE try batching that shuffles then goes through all examples
     performs better on new batching, more monotonic decrease of loss, samples are good
     * might be worth trying 10e-3 LR?
+
+CURRENT: trying mine on factorised, 10e-3
