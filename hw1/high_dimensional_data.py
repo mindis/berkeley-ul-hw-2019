@@ -3,7 +3,7 @@ import tensorflow as tf
 from pixelCNN import PixelCNN, display_image_grid, plot_image
 from pixelCNNMADE import PixelCNNMADE
 from pixelCNN_DS import PixelCNNDS
-from utils import get_batch, TrainingLogger
+from utils import TrainingLogger, BatchData
 import argparse
 
 
@@ -37,8 +37,9 @@ def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=128, lo
     :param log_every: iterations to log at multiples of
     :param sample_at: iterations to sample 4 images at multiples of
     """
+    batch_data = BatchData(X_train, bs)
     for i in range(n_iters+1):
-        batch = get_batch(X_train, bs)
+        batch = batch_data.get_batch()
         logprob = model.train_step(batch)
         if i % log_every == 0:
             # get validation performance and add to logs

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import tensorflow_probability as tfp
 from mlp_model import MLPModel
 from MADE import MADE
-from utils import get_batch, TrainingLogger
+from utils import get_batch, TrainingLogger, BatchData
 
 """
 distribution: 2D array where (i, j) is p(x1 = i, x2 = j)
@@ -47,9 +47,10 @@ def plot_samples(samples, title):
     plot_distribution_heatmap(samples_cum / len(samples), title)
 
 
-def train_model(X_train, X_val, model, training_logger):
+def train_model(X_train, X_val, model, training_logger, bs=10000):
+    batch_data = BatchData(X_train, bs)
     for i in range(1001):
-        logprob = model.train_step(get_batch(X_train, 10000))
+        logprob = model.train_step(batch_data.get_batch())
         if i % 100 == 0:
             val_logprob = model.eval(X_val)
             training_logger.add(i, logprob, val_logprob)
@@ -85,5 +86,6 @@ if __name__ == "__main__":
     # model_main(MLPModel(), X_train, X_val, X_test)
 
     # made model
+
     model_main(MADE(), X_train, X_val, X_test)
 

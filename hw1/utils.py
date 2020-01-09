@@ -26,11 +26,25 @@ def tf_log_to_base_n(nat_log, n):
     """
     return nat_log / tf.math.log(tf.constant(n, dtype=nat_log.dtype))
 
+class BatchData:
+    def __init__(self, X, bs):
+        self.X = X  # data
+        self.N = len(self.X)  # number of data rows
+        self.bs = min(self.N, bs)  # batch size
+        self.inds = np.arange(self.N)  # indices into data
+        np.random.shuffle(self.inds)  # random ordering
+        self.i = 0  # pointer to current index into data
+
+    def get_batch(self):
+        # take next batch of indices with wrap around
+        inds = np.take(self.inds, range(self.i, self.i+self.bs), mode="wrap")
+        # update pointer
+        self.i = (self.i + self.bs) % self.N
+        return self.X[inds]
+
 
 def get_batch(X, bs):
-    batch_size = min(len(X), bs)
-    inds = np.random.choice(np.arange(len(X)), batch_size, replace=False)
-    return X[inds]
+    pass
 
 
 class TrainingLogger:

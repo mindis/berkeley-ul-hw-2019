@@ -5,8 +5,7 @@ PixelCNN
     Full
         works on debug, bit dubious but seems to learn something on few (single)
         Main w/ 4,000 iterations -
-* try more iterations for both - 3-5,000
-* try integrate some of other's code and try on colab
+* try more iterations for factorised
 
 PixelCNN-MADE
 With factorised works on debug and few (single)
@@ -15,5 +14,9 @@ Full on main: seems p good, loss improves and samples seem to be getting there
 * try more iterations for both - 3-5,000
 * Try full on debug and few (single) and then main
 
-
-* setup other code as model then try running it to compare and debug
+PixelCNN-DS
+on main, lowest loss: 0.134 in 2,500 iterations, samples good quality
+2* compare and debug to yours
+1* why is this lower than they report?
+    x DONE try batching that shuffles then goes through all examples
+    * re-run to baseline on new batching
