@@ -1,3 +1,5 @@
+Note to change factorised / full in your model change get_pixelcnn_mask() default kwarg in pixelCNN.py
+
 PixelCNN
     Factorised
         works on debug and few (single)
@@ -5,18 +7,19 @@ PixelCNN
     Full
         works on debug, bit dubious but seems to learn something on few (single)
         Main w/ 4,000 iterations -
-* try more iterations for factorised
+* try 4,000 iterations for factorised
 
 PixelCNN-MADE
 With factorised works on debug and few (single)
 Factorised on main: loss improves but samples not great
 Full on main: seems p good, loss improves and samples seem to be getting there
-* try more iterations for both - 3-5,000
+* try more iterations for both - 4,000
 * Try full on debug and few (single) and then main
 
 PixelCNN-DS
 on main, lowest loss: 0.134 in 2,500 iterations, samples good quality
 2* compare and debug to yours
-1* why is this lower than they report?
+* why is this lower than they report?
     x DONE try batching that shuffles then goes through all examples
-    * re-run to baseline on new batching
+    performs better on new batching, more monotonic decrease of loss, samples are good
+    * might be worth trying 10e-3 LR?
