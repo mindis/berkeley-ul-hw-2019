@@ -26,4 +26,10 @@ why is this lower than they report?
 * compare and debug to yours
 3* swap in parts eg. masking function
 
-CURRENT: swap in masking function both ways
+Swapping in masking functions
+    Their masking function in my model (pixelcnn) gets to 0.133 loss, but samples are poor
+        perhaps its my mask AND model? my sampling?
+    My masking in their model, seems to improve then at 500 iter at 0.33 loss it blows up to 1+ loss, samples are poor
+
+Next:
+    try their mask and sample with my model
