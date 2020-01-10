@@ -8,15 +8,13 @@ PixelCNN
         works on debug, bit dubious but seems to learn something on few (single)
         Main w/ 4,000 iterations -
 2* try 4k iter on full
-3* try lower LR on factorised 4k
 
 PixelCNN-MADE
     Factorised
         works on debug and few (single)
-        main 4k: loss improves but doesn't get past 0.33 samples poor
+        main 4k: loss improves but doesn't get past 0.33, samples poor
     Full
-        main: seems p good, loss improves and samples seem to be getting there
-2* try 4k for full main
+        main 4k: loss improves but doesn't get past 0.33, samples poor but do seem to be getting there
 
 PixelCNN-DS
 on main, 10e-4, lowest loss: 0.134 in 2,500 iterations, samples good quality
@@ -25,6 +23,7 @@ why is this lower than they report?
     performs better on new batching, more monotonic decrease of loss, samples are good
 10e-3 on theirs
     seems noisy and jumpy, samples quite poor
-3* compare and debug to yours
+* compare and debug to yours
+3* swap in parts eg. masking function
 
-CURRENT: 4k main on factorised then full
+CURRENT: swap in masking function both ways

@@ -5,8 +5,10 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
+from pixelCNN import get_pixelcnn_mask
 
-def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
+
+def get_mask1(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
     mask = np.zeros(shape=(kernel_size, kernel_size, channels_in, channels_out), dtype=np.float32)
     mask[:kernel_size // 2, :, :, :] = 1
     mask[kernel_size // 2, :kernel_size // 2, :, :] = 1
@@ -25,6 +27,10 @@ def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, 
         mask[kernel_size // 2, kernel_size // 2, :, :] = mask_ch
 
     return mask
+
+
+def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
+    return get_pixelcnn_mask(kernel_size, channels_in, channels_out, mask_type == "A", input_channels, factorised=factorized)
 
 
 def masked_conv2d(x, channels_out, kernel_size, input_channels, mask_type, factorized):

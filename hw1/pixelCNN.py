@@ -3,10 +3,11 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from matplotlib import pyplot as plt
 
+from pixelCNN_DS import get_mask1
 from utils import tf_log_to_base_n
 
 
-def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=False):
+def get_pixelcnn_mask1(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=False):
     """
     raster ordering on conditioning mask
 
@@ -45,6 +46,11 @@ def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channel
     # tile the masks to potentially more than needed, then retrieve the number of channels wanted
     mask = np.tile(mask, (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels))))
     return mask[:, :, :in_channels, :out_channels]
+
+
+def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=False):
+    mask_type = "A" if isTypeA else "B"
+    return get_mask1(kernel_size, in_channels, out_channels, n_channels, mask_type, factorized=factorised)
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):
