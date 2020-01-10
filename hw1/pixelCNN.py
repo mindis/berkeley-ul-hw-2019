@@ -288,7 +288,7 @@ class PixelCNN:
                     # pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
                     # images[:, h, w, c] = pixel_dist.sample(1)
                     for i in range(n):
-                        images[i, h, w, c] = np.random.choice(self.N, p=model_preds[i, h, w, c])
+                        images[i, h, w, c] = np.random.choice(self.n_vals, p=model_preds[i, h, w, c])
         return images
 
 
