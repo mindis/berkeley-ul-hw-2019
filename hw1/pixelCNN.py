@@ -217,7 +217,9 @@ class PixelCNN:
         Fwd pass retuning softmax values in image shape (N, H, W, C, N_V)
         """
         logits = self.forward_logits(x)
-        probs = tf.nn.softmax(logits, axis=-1)
+        # seems to be numerical precision errors using float32
+        logits_64 = tf.cast(logits, tf.float64)
+        probs = tf.nn.softmax(logits_64, axis=-1)
         return probs
 
     def train_step(self, X_train):
@@ -284,10 +286,8 @@ class PixelCNN:
                 for c in range(self.C):
                     model_preds = self.forward_softmax(images)
                     # categorical over pixel values
-
                     # pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
                     # images[:, h, w, c] = pixel_dist.sample(1)
-                    print(model_preds)
                     for i in range(n):
                         images[i, h, w, c] = np.random.choice(self.n_vals, p=model_preds[i, h, w, c])
         return images
