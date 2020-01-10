@@ -5,33 +5,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from pixelCNN import get_pixelcnn_mask1
-
-
-def get_mask1(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
-    mask = np.zeros(shape=(kernel_size, kernel_size, channels_in, channels_out), dtype=np.float32)
-    mask[:kernel_size // 2, :, :, :] = 1
-    mask[kernel_size // 2, :kernel_size // 2, :, :] = 1
-
-    if factorized:
-        if mask_type == 'B':
-            mask[kernel_size // 2, kernel_size // 2, :, :] = 1
-    else:
-        factor_w = int(np.ceil(channels_out / input_channels))
-        factor_h = int(np.ceil(channels_in / input_channels))
-        k = mask_type == 'A'
-        m0 = np.triu(np.ones(dtype=np.float32, shape=(input_channels, input_channels)), k)
-        m1 = np.repeat(m0, factor_w, axis=1)
-        m2 = np.repeat(m1, factor_h, axis=0)
-        mask_ch = m2[:channels_in, :channels_out]
-        mask[kernel_size // 2, kernel_size // 2, :, :] = mask_ch
-
-    return mask
-
-
-def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
-    return get_pixelcnn_mask1(kernel_size, channels_in, channels_out, mask_type == "A", input_channels, factorised=factorized)
-
+from pixelCNN import get_mask
 
 def masked_conv2d(x, channels_out, kernel_size, input_channels, mask_type, factorized):
     # Get dimensions of the input tensor
