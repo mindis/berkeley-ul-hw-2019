@@ -5,35 +5,8 @@ from matplotlib import pyplot as plt
 
 from utils import tf_log_to_base_n
 
-#######
-# OTHER's CODE
-def get_mask1(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
-    mask = np.zeros(shape=(kernel_size, kernel_size, channels_in, channels_out), dtype=np.float32)
-    mask[:kernel_size // 2, :, :, :] = 1
-    mask[kernel_size // 2, :kernel_size // 2, :, :] = 1
 
-    if factorized:
-        if mask_type == 'B':
-            mask[kernel_size // 2, kernel_size // 2, :, :] = 1
-    else:
-        factor_w = int(np.ceil(channels_out / input_channels))
-        factor_h = int(np.ceil(channels_in / input_channels))
-        k = mask_type == 'A'
-        m0 = np.triu(np.ones(dtype=np.float32, shape=(input_channels, input_channels)), k)
-        m1 = np.repeat(m0, factor_w, axis=1)
-        m2 = np.repeat(m1, factor_h, axis=0)
-        mask_ch = m2[:channels_in, :channels_out]
-        mask[kernel_size // 2, kernel_size // 2, :, :] = mask_ch
-
-    return mask
-
-
-def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
-    return get_pixelcnn_mask1(kernel_size, channels_in, channels_out, mask_type == "A", input_channels, factorised=factorized)
-
-#####
-
-def get_pixelcnn_mask1(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=False):
+def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=False):
     """
     raster ordering on conditioning mask
 
@@ -72,11 +45,6 @@ def get_pixelcnn_mask1(kernel_size, in_channels, out_channels, isTypeA, n_channe
     # tile the masks to potentially more than needed, then retrieve the number of channels wanted
     mask = np.tile(mask, (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels))))
     return mask[:, :, :in_channels, :out_channels]
-
-
-def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=False):
-    mask_type = "A" if isTypeA else "B"
-    return get_mask1(kernel_size, in_channels, out_channels, n_channels, mask_type, factorized=factorised)
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):
@@ -285,10 +253,8 @@ class PixelCNN:
                 for c in range(self.C):
                     model_preds = self.forward_softmax(images)
                     # categorical over pixel values
-                    # pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
-                    # images[:, h, w, c] = pixel_dist.sample(1)
-                    for i in range(n):
-                        images[i, h, w, c] = np.random.choice(self.n_vals, p=model_preds[i, h, w, c])
+                    pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
+                    images[:, h, w, c] = pixel_dist.sample(1)
         return images
 
 

@@ -43,4 +43,7 @@ Have read through the code and mostly seems similar to mine, have made note belo
     * any difference in the conv I use vs DS?
 TFP and NP sampling is empirically very similar (see PixelCNN_DS.compare_sampling)
 
-Next: check 13/01 todos
+Next:
+    check 13/01 todos
+    try again with more precise softmax?
+
