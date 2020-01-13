@@ -43,12 +43,19 @@ Have read through the code and mostly seems similar to mine, have made note belo
     * any difference in the conv I use vs DS?
 TFP and NP sampling is empirically very similar (see PixelCNN_DS.compare_sampling)
 
+14/01
 Masks mine vs DS has different ordering of channels in and out to corresponding masks.
 Mine is R, G, B, R, G, B ..., DS's is R, R, R.., G, G, G.., B, B, B..
-This could be the issue, perhaps when flattened it then doesn't match the channels ordered
+This could be the issue, perhaps when reshaped it then doesn't match the channels ordered
 as it's done it masking function.
+This seems to be the issue, see pixelCNN_DS.tf_reshape_masks, here the plots show for one
+input channel, the output channel in C x N grid. These should repeat as it's R in to the R, G, B
+channels and each of N values they can take. Mine don't repeat so think this is an issue
+My masking makes sense when rehshaping to (bs, K, K, N, C) but DS makes sense in the actual
+usage to (bs, K, K, C, N).
 
 Next:
+    sort masking (see 14/01)
     check 13/01 todos
     try again with more precise softmax?
 
