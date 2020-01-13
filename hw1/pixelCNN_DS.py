@@ -6,7 +6,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import seaborn as sns
 import matplotlib.pyplot as plt
-from pixelCNN import get_pixelcnn_mask, display_mask
+from pixelCNN import get_pixelcnn_mask, display_mask, plot_image
 
 
 def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
@@ -213,18 +213,60 @@ def compare_sampling(n=10, m=10000, seed=123):
 
 
 def compare_masks():
-    kernel_size = 5
-    in_c = 3
-    out_c = 3
+    """
+    Compare my masking to DS'
+    """
+    kernel_size = 4
+    in_c = 5
+    out_c = 3 * 4
     n_c = 3
     mask_letter = "A"
     factorised = False
-    mask_ds = get_mask(kernel_size, in_c, out_c, n_c, mask_letter, factorised)
     mask = get_pixelcnn_mask(kernel_size, in_c, out_c, mask_letter == "A", n_c, factorised)
-    display_mask(mask_ds, None)
     display_mask(mask, None)
+    mask_ds = get_mask(kernel_size, in_c, out_c, n_c, mask_letter, factorised)
+    display_mask(mask_ds, None)
+
+
+def display_mask_reshape(masks, kernel_size, n, c, i):
+    """
+    Displays the ith input channel's masks in C x N grid
+    """
+    # in channels as batch dimension
+    mask = masks[:, :, i]
+    # use tf reshape
+    mask = np.array(tf.reshape(mask, (kernel_size, kernel_size, n, c)))
+    print(mask.shape)
+    mask_flat = np.concatenate(mask.transpose([2, 1, 0, 3]), axis=0).transpose([2, 1, 0])
+    print(mask_flat.shape)
+    # data is shape (n, h, w, c)
+    # plots n rows of images
+    disp = np.concatenate(mask_flat, axis=0)
+    print(disp.shape)
+    plot_image(disp, None)
+
+
+def tf_reshape_masks():
+    """
+    See how TF reshapes the output channels into channels and values for softmax
+    """
+    kernel_size = 4
+    in_c = 5
+    C = 3  # n channels
+    N = 4  # n vals
+    out_c = C * N
+    mask_letter = "A"
+    factorised = False
+    i = 2
+    mask = get_pixelcnn_mask(kernel_size, in_c, out_c, mask_letter == "A", C, factorised)
+    print("Mask in shape", mask.shape)
+    display_mask_reshape(mask, kernel_size, N, C, i)
+    mask_ds = get_mask(kernel_size, in_c, out_c, C, mask_letter, factorised)
+    print("Mask DS in shape", mask_ds.shape)
+    display_mask_reshape(mask_ds, kernel_size, N, C, i)
 
 
 if __name__ == "__main__":
     # compare_sampling()
-    compare_masks()
+    # compare_masks()
+    tf_reshape_masks()

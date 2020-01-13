@@ -303,14 +303,11 @@ def display_mask(mask, title):
     # index by prev layer's channels then this layer's channels
     # so rows are prev layer's channels, cols are this layer's
     # concat by prev layer channels into row images, then this channel dim is each image in the row (cols)
-    mask_disp = np.concatenate(mask.transpose([3, 1, 0, 2]), axis=0).transpose([2, 1, 0])[..., None]
+    mask_disp = np.concatenate(mask.transpose([3, 1, 0, 2]), axis=0).transpose([2, 1, 0])
     # data is shape (n, h, w, c)
     # plots n rows of images
-    c = mask_disp.shape[3]
     disp = np.concatenate(mask_disp, axis=0)
     title = "{}-grid".format(title) if title is not None else None
-    if c == 1:
-        disp = np.squeeze(disp)
     letters = ["R", "G", "B"]
     for i, j in enumerate([2, 7, 12]):
         plt.text(j, 15.5, letters[i])
