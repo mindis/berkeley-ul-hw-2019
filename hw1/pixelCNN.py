@@ -152,8 +152,6 @@ class PixelCNNModel(tf.keras.Model):
         self.res_layers = [MaskedResidualBlock(self.n_filters) for _ in range(12)]
         # want ReLU applied first as per paper
         self.relu_conv1x1 = [tf.keras.layers.ReLU(),
-                             MaskedCNN(self.n_filters, 1, False),
-                             tf.keras.layers.ReLU(),
                              MaskedCNN(self.n_filters, 1, False)]
         self.output_conv = [tf.keras.layers.ReLU(),
                             MaskedCNN(self.n_vals * self.C, 1, False)]
@@ -229,6 +227,7 @@ class PixelCNN:
         with tf.GradientTape() as tape:
             logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
+        # TODO: clip norm?
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob
 

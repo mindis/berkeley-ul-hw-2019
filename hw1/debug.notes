@@ -28,9 +28,19 @@ why is this lower than they report?
 
 Swapping in masking functions
     Their masking function in my model (pixelcnn) gets to 0.133 loss, but samples are poor
-        perhaps its my mask AND model? my sampling?
+        -> perhaps its my mask AND model? my sampling?
     My masking in their model, seems to improve then at 500 iter at 0.33 loss it blows up to 1+ loss for the rest
     samples are v poor
+        -> my masking is wrong?
+    Their mask and samples in my model: loss to 0.18, samples are better than with my sampling, but still not as
+    good as their full setup - has the texture but not the shape
+        -> look at sampling, but have also changed softmax now
 
-Next:
-    try their mask and sample with my model
+13/01
+Have changed my architecture to match the paper and DS code (removed one of the 1x1 output conv layers)
+Have read through the code and mostly seems similar to mine, have made note below of a few things to check:
+    * compare the masking
+    * any difference in the conv I use vs DS?
+TFP and NP sampling is empirically very similar (see PixelCNN_DS.compare_sampling)
+
+Next: check 13/01 todos

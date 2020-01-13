@@ -4,7 +4,8 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-
+import seaborn as sns
+import matplotlib.pyplot as plt
 from pixelCNN import get_mask
 
 def masked_conv2d(x, channels_out, kernel_size, input_channels, mask_type, factorized):
@@ -157,3 +158,37 @@ class PixelCNNDS:
 
     def forward_softmax(self, X):
         return self.sess.run(self.probs, feed_dict={self.x_ph: X})
+
+
+def compare_sampling(n=10, m=10000, seed=123):
+    """
+    Compares np.random.choice with tfp.distributions.Cateorgical().sample
+    n - dimensional RVs
+    m - samples
+    """
+    np.random.seed(seed)
+    x = np.random.random(size=n)
+    x = x / np.sum(x)
+    y_np = np.random.choice(n, size=m, p=x)
+    y_tfp = tfp.distributions.Categorical(probs=x).sample(m, seed=seed)
+    freq_np = np.zeros(n)
+    freq_tfp = np.zeros(n)
+    for i in range(n):
+        freq_np[i] = np.sum(y_np == i)
+        freq_tfp[i] = np.sum(y_tfp == i)
+    freq_np = freq_np / m
+    freq_tfp = freq_tfp / m
+    plt.bar(range(n), freq_np, label="NP", edgecolor="r", color="None")
+    plt.bar(range(n), freq_tfp, label="TFP", edgecolor="g", color="None")
+    plt.bar(range(n), x, label="True", edgecolor="b", color="None")
+    plt.legend()
+    plt.show()
+    sns.distplot(freq_np, label="np")
+    sns.distplot(freq_tfp, label="tfp")
+    sns.distplot(x, label="true")
+    plt.legend()
+    plt.show()
+
+
+if __name__ == "__main__":
+    compare_sampling()
