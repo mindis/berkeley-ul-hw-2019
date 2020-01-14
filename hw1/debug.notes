@@ -39,7 +39,7 @@ Swapping in masking functions
 13/01
 Have changed my architecture to match the paper and DS code (removed one of the 1x1 output conv layers)
 Have read through the code and mostly seems similar to mine, have made note below of a few things to check:
-    * compare the masking
+    DONE compare the masking
     * any difference in the conv I use vs DS?
 TFP and NP sampling is empirically very similar (see PixelCNN_DS.compare_sampling)
 
@@ -55,8 +55,13 @@ My masking makes sense when rehshaping to (bs, K, K, N, C) but DS makes sense in
 usage to (bs, K, K, C, N).
 
 Next:
-    try again with more precise softmax?
-        since factorised=True should have been same with my bug masking, except maybe int vs float?
-    sort masking (see 14/01)
+    sort factorised=True masking
+        should have been same with my bug masking and potential bug sampling
+        maybe int vs float in mask?
+        Could also be something in model - LR?
+        Loss does seem to get there - 0.18 at 1900, it's just jumpy
+        1* try run lower lR
+        * try look at model for differences
+    2* try running new masking on full
     check 13/01 todos
 
