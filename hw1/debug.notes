@@ -57,11 +57,12 @@ usage to (bs, K, K, C, N).
 Next:
     sort factorised=True masking
         should have been same with my bug masking and potential bug sampling
-        maybe int vs float in mask?
         Could also be something in model - LR?
         Loss does seem to get there - 0.18 at 1900, it's just jumpy
-        1* try run lower lR
+        with lower lR (5e-4) - still jumpy loss decrease - why?
         * try look at model for differences
+            grad clipping?
+            maybe int vs float in mask?
     2* try running new masking on full
     check 13/01 todos
 

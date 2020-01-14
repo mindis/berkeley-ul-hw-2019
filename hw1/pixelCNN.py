@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from utils import tf_log_to_base_n
 
 
-def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=True):
+def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=False):
     """
     Masks are repeated in groups with modulo if channel in or out != n_channels so if
     5 channels then it's R, R, G, G, B etc.
