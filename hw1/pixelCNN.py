@@ -30,27 +30,30 @@ def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channel
 
     Returns masks of shape (kernel_size, kernel_size, # in channels, # out channels)
     """
-    mask = np.ones((kernel_size, kernel_size, n_channels, n_channels))
+    channel_masks = np.ones((kernel_size, kernel_size, n_channels, n_channels))
     centre = kernel_size // 2
     # bottom rows 0s
-    mask[centre+1:, :, :, :] = 0.
+    channel_masks[centre+1:, :, :, :] = 0.
     # right of centre on centre row 0s
-    mask[centre:, centre+1:, :, :] = 0.
+    channel_masks[centre:, centre+1:, :, :] = 0.
     # deal with centre based on mask "way": factorised or full
     # rows are channels in prev layer, columns are channels in this layer
     if factorised:
         if isTypeA:
-            mask[centre, centre, :, :] = 0.
+            channel_masks[centre, centre, :, :] = 0.
     else:
         # centre depends on mask type A or B
         k = 0 if isTypeA else 1
         # reverse i and j to get RGB ordering (other way would be BGR)
         i, j = np.triu_indices(n_channels, k)
-        mask[centre, centre, j, i] = 0.
+        channel_masks[centre, centre, j, i] = 0.
 
+    # we use repeat not tile because this keeps the correct ordering we need
+    tile_shape = (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels)))
+    masks = np.repeat(channel_masks, tile_shape[0], axis=2)
+    masks = np.repeat(masks, tile_shape[1], axis=3)
     # tile the masks to potentially more than needed, then retrieve the number of channels wanted
-    mask = np.tile(mask, (int(np.ceil(in_channels / n_channels)), int(np.ceil(out_channels / n_channels))))
-    return mask[:, :, :in_channels, :out_channels]
+    return masks[:, :, :in_channels, :out_channels]
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):

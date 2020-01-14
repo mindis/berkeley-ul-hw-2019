@@ -230,14 +230,14 @@ def compare_masks():
 
 def display_mask_reshape(masks, kernel_size, n, c, i):
     """
-    Displays the ith input channel's masks in C x N grid
+    Displays the ith input channel's masks in N x C grid
     """
     # in channels as batch dimension
     mask = masks[:, :, i]
     # use tf reshape
     mask = np.array(tf.reshape(mask, (kernel_size, kernel_size, c, n)))
     print(mask.shape)
-    mask_flat = np.concatenate(mask.transpose([3, 1, 0, 2]), axis=0).transpose([2, 1, 0])
+    mask_flat = np.concatenate(mask.transpose([2, 1, 0, 3]), axis=0).transpose([2, 1, 0])
     print(mask_flat.shape)
     # data is shape (n, h, w, c)
     # plots n rows of images
@@ -257,7 +257,7 @@ def tf_reshape_masks():
     out_c = C * N
     mask_letter = "A"
     factorised = False
-    i = 0
+    i = 4
     mask = get_pixelcnn_mask(kernel_size, in_c, out_c, mask_letter == "A", C, factorised)
     print("Mask in shape", mask.shape)
     display_mask_reshape(mask, kernel_size, N, C, i)
