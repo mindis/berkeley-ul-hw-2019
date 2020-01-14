@@ -55,7 +55,8 @@ My masking makes sense when rehshaping to (bs, K, K, N, C) but DS makes sense in
 usage to (bs, K, K, C, N).
 
 Next:
+    try again with more precise softmax?
+        since factorised=True should have been same with my bug masking, except maybe int vs float?
     sort masking (see 14/01)
     check 13/01 todos
-    try again with more precise softmax?
 

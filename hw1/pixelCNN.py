@@ -6,21 +6,27 @@ from matplotlib import pyplot as plt
 from utils import tf_log_to_base_n
 
 
-def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=False):
+def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channels=3, factorised=True):
     """
-    raster ordering on conditioning mask
+    Masks are repeated in groups with modulo if channel in or out != n_channels so if
+    5 channels then it's R, R, G, G, B etc.
+    This is so that when reshaping to (H, W, #channels, #values) we get each channel's values aligning
+    For RGB channel taking N values case it's R1, R2, ... RN, G1, G2, ... GN, B1, B2, ... BN which reshapes to
+    [R1, R2, ... RN], [G1, G2, ... GN], [B1, B2, ... BN]
+
+    raster ordering on conditioning mask.
 
     kernel_size: size N of filter N x N
-    in_channels: number of channels in
-    out_channels: number of channels out
+    in_channels: number of channels/filters in
+    out_channels: number of channels/filters out
+    n_channels: number of channels for masking eg. 3 for RGB masks
     isTypeA: bool, true if type A mask, otherwise type B mask used.
         Type A takes context and previous channels (but not its own channel)
         Type B takes context, prev channels and connected to own channel.
     factorised: bool, if True then probabilities treated independently P(r)p(g)p(b)
         so mask type A all have centre off and B all have it on.
         Otherwise the full joint as in the paper are used p(r)p(g|r)p(b|r,g)
-        and A and B masks are different for each channel to allow this. Repeated
-        with modulo if channel in or out != n_channels so if 4 channels then it's R, G, B, R etc.
+        and A and B masks are different for each channel to allow this.
 
     Returns masks of shape (kernel_size, kernel_size, # in channels, # out channels)
     """
