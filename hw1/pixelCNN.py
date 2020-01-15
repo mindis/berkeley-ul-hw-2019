@@ -30,17 +30,17 @@ def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channel
 
     Returns masks of shape (kernel_size, kernel_size, # in channels, # out channels)
     """
-    channel_masks = np.ones((kernel_size, kernel_size, n_channels, n_channels))
+    channel_masks = np.ones((kernel_size, kernel_size, n_channels, n_channels), dtype=np.int32)
     centre = kernel_size // 2
     # bottom rows 0s
-    channel_masks[centre+1:, :, :, :] = 0.
+    channel_masks[centre+1:, :, :, :] = 0
     # right of centre on centre row 0s
-    channel_masks[centre:, centre+1:, :, :] = 0.
+    channel_masks[centre:, centre+1:, :, :] = 0
     # deal with centre based on mask "way": factorised or full
     # rows are channels in prev layer, columns are channels in this layer
     if factorised:
         if isTypeA:
-            channel_masks[centre, centre, :, :] = 0.
+            channel_masks[centre, centre, :, :] = 0
     else:
         # centre depends on mask type A or B
         k = 0 if isTypeA else 1

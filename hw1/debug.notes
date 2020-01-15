@@ -54,15 +54,23 @@ channels and each of N values they can take. Mine don't repeat so think this is 
 My masking makes sense when rehshaping to (bs, K, K, N, C) but DS makes sense in the actual
 usage to (bs, K, K, C, N).
 
-Next:
-    sort factorised=True masking
-        should have been same with my bug masking and potential bug sampling
-        Could also be something in model - LR?
-        Loss does seem to get there - 0.18 at 1900, it's just jumpy
-        with lower lR (5e-4) - still jumpy loss decrease - why?
-        * try look at model for differences
-            grad clipping?
-            maybe int vs float in mask?
-    2* try running new masking on full
-    check 13/01 todos
+
+sort factorised=True masking
+    should have been same with my bug masking and potential bug sampling
+    Could also be something in model - LR?
+    Loss does seem to get there - 0.18 at 1900, it's just jumpy
+    with lower lR (5e-4) - still jumpy loss decrease - why?
+    * try look at model for differences
+        grad clipping?
+        maybe int vs float in mask?
+running new masking on full
+    loss gets down to 0.15 in 2000, samples not great but are getting there
+    final loss in 4k, 0.154, samples seem to have some quality and semblance but not quite there yet -> debug
+    * debug
+
+Note the best loss I've had is 0.13 but DS's gets to 0.127 (and less than 0.05 with MADE)
+
+next:
+    * compare convs (mark as DONE above when done)
+    * masking with ints vs floats (factorised)
 
