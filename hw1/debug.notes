@@ -60,9 +60,12 @@ sort factorised=True masking
     Could also be something in model - LR?
     Loss does seem to get there - 0.18 at 1900, it's just jumpy
     with lower lR (5e-4) - still jumpy loss decrease - why?
-    * try look at model for differences
-        grad clipping?
-        maybe int vs float in mask?
+    try look at model for differences
+        * grad clipping?
+        DONE: maybe int vs float in mask
+            still jumpy as int
+            best loss x at y
+
 running new masking on full
     loss gets down to 0.15 in 2000, samples not great but are getting there
     final loss in 4k, 0.154, samples seem to have some quality and semblance but not quite there yet -> debug
@@ -71,6 +74,6 @@ running new masking on full
 Note the best loss I've had is 0.13 but DS's gets to 0.127 (and less than 0.05 with MADE)
 
 next:
-    * compare convs (mark as DONE above when done)
     * masking with ints vs floats (factorised)
+    * compare convs (mark as DONE above when done)
 
