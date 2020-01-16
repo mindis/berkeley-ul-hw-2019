@@ -62,9 +62,7 @@ sort factorised=True masking
     with lower lR (5e-4) - still jumpy loss decrease - why?
     try look at model for differences
         * grad clipping?
-        DONE: maybe int vs float in mask
-            still jumpy as int
-            best loss x at y
+        * int vs float in mask a bug? try int and float to compare.
 
 running new masking on full
     loss gets down to 0.15 in 2000, samples not great but are getting there
@@ -74,6 +72,9 @@ running new masking on full
 Note the best loss I've had is 0.13 but DS's gets to 0.127 (and less than 0.05 with MADE)
 
 next:
-    * masking with ints vs floats (factorised)
+    1* fix the seeds - currently not repeatable
+    * masking with ints vs floats (factorised) to compare if same 
     * compare convs (mark as DONE above when done)
+    * figure out why factorised model not good as it can be (jumpy loss)
+    * figure out why full model samples not great
 

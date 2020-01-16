@@ -248,7 +248,7 @@ class PixelCNN:
         loss = self.loss(X, logits)
         return loss
 
-    def get_samples(self, n):
+    def get_samples(self, n, seed=123):
         """
         Generation is done from blank image (all 0s), we then sample R channel
         of first pixel, then G then B and then for second pixel etc.
@@ -263,7 +263,7 @@ class PixelCNN:
                     model_preds = self.forward_softmax(images)
                     # categorical over pixel values
                     pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
-                    images[:, h, w, c] = pixel_dist.sample(1)
+                    images[:, h, w, c] = pixel_dist.sample(1, seed=seed)
         return images
 
 

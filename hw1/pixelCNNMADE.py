@@ -22,7 +22,7 @@ class PixelCNNMADEModel(Model):
         self.n_hidden_units = n_hidden_units
 
     def build(self, input_shape):
-        # TODO: how to do made for every pixel? output H * W * C?
+        # TODO: correct way to do made for every pixel? output H * W * C?
         """
         Model is
         Image -> PixelCNN (bs, H, W, C * N) -> Flatten -> Dense layer (bottleneck reduce dimensionality)

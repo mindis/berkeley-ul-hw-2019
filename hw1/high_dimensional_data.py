@@ -158,6 +158,5 @@ if __name__ == "__main__":
         model = model_uninit()
     tasks[task](model)
 
-# TODO: run main for factorised and full on pixelcnn and pixelcnn-made (on pc / colab)
 # TODO: code up receptive field visualisations, also do 3 x 3 grid like example masks to show
 #   how factorised / full compare in channels input path to output
