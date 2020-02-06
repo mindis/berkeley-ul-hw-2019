@@ -1,4 +1,4 @@
-tensorflow==2.0.1		# CPU Version of TensorFlow.
+tensorflow>=2.0.1		# CPU Version of TensorFlow.
 matplotlib
 numpy
 seaborn

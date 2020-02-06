@@ -83,7 +83,7 @@ def res_block(x_in, channels_out=128, input_channels=None, factorized=True):
 
 
 class PixelCNNDS:
-    def __init__(self, H=28, W=28, C=3, N=4, factorized=True, learning_rate=10e-3):
+    def __init__(self, H=28, W=28, C=3, N=4, factorized=True, learning_rate=10e-3, seed=1234):
         self.name = "PixelCNN-DS"
         self.H = H
         self.W = W
@@ -93,6 +93,9 @@ class PixelCNNDS:
         self.optimiser = tf.compat.v1.train.AdamOptimizer(learning_rate)
         tf.compat.v1.disable_eager_execution()
         tf.compat.v1.disable_v2_behavior()
+        tf.compat.v1.reset_default_graph()
+        # set seed
+        tf.compat.v1.random.set_random_seed(seed)
         self.sess = tf.compat.v1.Session()
         self.setup_model()
         self.sess.run(tf.compat.v1.global_variables_initializer())

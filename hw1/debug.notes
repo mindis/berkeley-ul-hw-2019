@@ -78,3 +78,11 @@ next:
     * figure out why factorised model not good as it can be (jumpy loss)
     * figure out why full model samples not great
 
+06/02/2020
+
+Checked pixelCNN_DS.py for seed / repeatability, updated to make so
+Checked pixelCNN.py for seed / repeatability, PASSED
+Also checked TF-probability and Numpy
+* Only checked the weight initialisation, may be other parts needing repeatability, needs further testing
+* Then add my code incrementally to DS code and debug
+
