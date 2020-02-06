@@ -84,5 +84,7 @@ Checked pixelCNN_DS.py for seed / repeatability, updated to make so
 Checked pixelCNN.py for seed / repeatability, PASSED
 Also checked TF-probability and Numpy
 * Only checked the weight initialisation, may be other parts needing repeatability, needs further testing
+* Bench mark my model and DS model now
 * Then add my code incrementally to DS code and debug
+* see other TODOs above and comments
 

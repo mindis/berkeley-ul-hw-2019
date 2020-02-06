@@ -101,7 +101,7 @@ class PixelCNNDS:
         self.sess.run(tf.compat.v1.global_variables_initializer())
 
     def setup_model(self):
-        self.x_ph = tf.compat.v1.placeholder(tf.float32, shape=(None, 28, 28, 3))
+        self.x_ph = tf.compat.v1.placeholder(tf.float32, shape=(None, self.H, self.W, self.C))
         input_channels = self.x_ph.shape.as_list()[3]
         inp = tf.cast(self.x_ph, tf.int32)
         x = tf.cast(self.x_ph, tf.float32)
@@ -120,7 +120,7 @@ class PixelCNNDS:
             x = masked_conv2d(x, channels_out=self.N * self.C, kernel_size=1, input_channels=input_channels, mask_type='B',
                                       factorized=self.factorized)
 
-        x_rshp = tf.reshape(x, [-1, 28, 28, 3, 4])
+        x_rshp = tf.reshape(x, [-1, self.H, self.W, self.C, self.N])
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=inp, logits=x_rshp)
         self.loss = tf.reduce_mean(losses) * np.log2(np.e)
         self.probs = tf.nn.softmax(x_rshp)
