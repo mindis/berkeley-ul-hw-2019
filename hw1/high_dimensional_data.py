@@ -23,8 +23,8 @@ def set_seed(seed=100):
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
-
-def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=128, log_every=100, sample_every=500):
+# TODO: back to log_every=100
+def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=128, log_every=1, sample_every=500):
     """
     Run training loop.
     Note sampling and validation take a while so we do them periodically.
