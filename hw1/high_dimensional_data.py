@@ -52,7 +52,7 @@ def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=128, lo
 
 def eval_model(model, X_test, training_logger, bs=128):
     test_logprob = model.eval_batch(X_test, bs=bs)
-    training_logger.plot(float(test_logprob), clip_loss_plot=2.5)
+    training_logger.plot(float(test_logprob), ymax=2.5)
     # this can take a while, less samples is quicker, ideally 100
     sample_model(model, 9, training_logger.log_dir, label=" final")
 

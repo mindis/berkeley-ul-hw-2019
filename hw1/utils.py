@@ -85,6 +85,7 @@ class TrainingLogger:
         log_f = "{}/logs.txt".format(self.log_dir)
         with open(log_f, "w") as f:
             df.to_string(f, index=False)
+            f.write("\n\nTest logprob: {}".format(test_set_logprob))
         # plot logs
         ymin = min(*df.min(), test_set_logprob, 0)
         if ymax is None:
@@ -99,6 +100,3 @@ class TrainingLogger:
         plt.savefig("{}/{}-train.svg".format(self.log_dir, self.model_name))
         plt.draw()
         plt.pause(0.001)
-
-
-pd.read_csv()
