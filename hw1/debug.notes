@@ -84,6 +84,12 @@ Checked pixelCNN.py for seed / repeatability, PASSED
 Also checked TF-probability and Numpy
 PixelCNN_DS - reapeatable training loss PASSED
 PixelCNN - reapeatable training loss PASSED
+
+08/02/2020
+
+Updated training logger and plotting
+Checked DS code with github and it's as is but adapted for TF versions
+
 * Bench mark my model and DS model now
 * Check DS model still at his base code
 * Then add my code incrementally to DS code and debug
