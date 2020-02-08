@@ -200,48 +200,51 @@ class PixelCNN:
     def train_step(self, X_train):
         """
         Takes batch of data X_train
+        returns logprob numpy
         """
         with tf.GradientTape() as tape:
             logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
         # TODO: clip norm?
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-        return logprob
+        return logprob.numpy()
 
     def eval_batch(self, X, bs=128):
         """
         computes forward pass then logprob on the outputs
         X is batched in to handle large data
         note this returns mean logprob over batch
+        returns numpy array
         """
         # for small batch just eval it
         if len(X) <= bs:
-            return self.eval(X)
-        # otherwise evaluate in batches
-        neg_logprobs_bits = []
-        # eval in batches
-        for i in range(len(X) // bs):
-            neg_logprobs_bits.append(self.eval(X[i * bs: (i + 1) * bs]))
-        # mean of batches
-        mean_nll = tf.reduce_mean(neg_logprobs_bits)
-        # deal with leftover data if not a multiple of batch size
-        extra_data = X[(len(X) // bs) * bs:]
-        if len(extra_data) == 1:
-            # add batch dimension if single data
-            extra_data = [extra_data]
-        if len(extra_data) > 0:
-            # evaluate extra data
-            extra_data_nll_bits = self.eval(extra_data)
-            # weight the mean of the batches and extra data
-            n_extra = len(extra_data)
-            mean_nll = ((len(X) - n_extra) / len(X)) * mean_nll + (n_extra / len(X)) * extra_data_nll_bits
-        return mean_nll
+            return self.eval(X).numpy()
+        else:
+            # otherwise evaluate in batches
+            neg_logprobs_bits = []
+            # eval in batches
+            for i in range(len(X) // bs):
+                neg_logprobs_bits.append(self.eval(X[i * bs: (i + 1) * bs]))
+            # mean of batches
+            mean_nll = tf.reduce_mean(neg_logprobs_bits)
+            # deal with leftover data if not a multiple of batch size
+            extra_data = X[(len(X) // bs) * bs:]
+            if len(extra_data) == 1:
+                # add batch dimension if single data
+                extra_data = [extra_data]
+            if len(extra_data) > 0:
+                # evaluate extra data
+                extra_data_nll_bits = self.eval(extra_data)
+                # weight the mean of the batches and extra data
+                n_extra = len(extra_data)
+                mean_nll = ((len(X) - n_extra) / len(X)) * mean_nll + (n_extra / len(X)) * extra_data_nll_bits
+            return mean_nll.numpy()
 
     def eval(self, X):
         """
         Runs forward pass and loss
         :param X: input images batch
-        :return: loss
+        :return: loss tensor
         """
         X = tf.reshape(X, (-1, self.H, self.W, self.C))
         logits = self.forward_logits(X)

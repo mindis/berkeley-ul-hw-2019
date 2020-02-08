@@ -74,11 +74,11 @@ class TrainingLogger:
         self._train.append(train)
         self._val.append(val)
 
-    def plot(self, test_set_logprob, clip_loss_plot=None):
+    def plot(self, test_set_logprob, ymax=None):
         """
         Give test set sum of negative log likelihoods divided by number of dimensions
         for log probability in bits per dimension
-        :param clip_loss_plot: max y value for plot (optional)
+        :param ymax: max y value for plot (optional)
         """
         df = pd.DataFrame({"Train": self._train, "Validation": self._val})
         # store logs to file
@@ -86,15 +86,19 @@ class TrainingLogger:
         with open(log_f, "w") as f:
             df.to_string(f, index=False)
         # plot logs
+        ymin = min(*df.min(), test_set_logprob, 0)
+        if ymax is None:
+            ymax = max(*df.max(), test_set_logprob)
         plt.clf()
-        df.plot()
+        df.plot(ylim=(ymin, ymax))
         plt.axhline(y=test_set_logprob, label="Test set", linestyle="--", color="g")
         plt.legend()
         plt.title("Train and Validation Log Probs during learning")
         plt.xlabel("# iterations")
         plt.ylabel("Log prob (bits per dimension)")
-        if clip_loss_plot is not None:
-            plt.ylim(top=clip_loss_plot)
         plt.savefig("{}/{}-train.svg".format(self.log_dir, self.model_name))
         plt.draw()
         plt.pause(0.001)
+
+
+pd.read_csv()

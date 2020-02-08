@@ -116,14 +116,14 @@ def pixel_cnn_debug(model, one_pattern=True):
     X_train, X_val, X_test = debug_data()
     if one_pattern:
         X_train = np.repeat(X_train[0][None], 1000, axis=0)
-        train_and_eval_main(X_train, X_train, X_train, model, "debug", log_every=10, n_iters=50)
+        train_and_eval_main(X_train, X_train, X_train, model, "debug", log_every=10, n_iters=100)
     else:
         train_and_eval_main(X_test, X_train, X_val, model, "debug", log_every=10, n_iters=100)
 
 
 def plot_debug_data():
     X_train, X_val, X_test = debug_data()
-    display_image_grid(X_train[:9], None)
+    display_image_grid(X_train[:9], "", None)
 
 
 def pixel_cnn_few(model, n=1):
