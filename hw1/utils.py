@@ -1,6 +1,8 @@
+import os
 import time
 
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from matplotlib import pyplot as plt
 
@@ -49,11 +51,18 @@ def get_batch(X, bs):
 
 class TrainingLogger:
     def __init__(self, model_name, q):
+        """
+        :param model_name: model name for logs and plot titles
+        :param q: which question for which directory to store plots in
+        """
         self._i = []
         self._train = []
         self._val = []
         self.model_name = model_name
-        self.q = q
+        timestamp = time.strftime("%Y%m%d-%H%M")
+        self.log_dir = "logs/{}/{}-{}".format(q, model_name, timestamp)
+        os.makedirs(self.log_dir)
+        print("Logging to {}".format(self.log_dir))
 
     def add(self, i, train, val):
         """
@@ -65,19 +74,27 @@ class TrainingLogger:
         self._train.append(train)
         self._val.append(val)
 
-    def plot(self, test_set_logprob):
+    def plot(self, test_set_logprob, clip_loss_plot=None):
         """
         Give test set sum of negative log likelihoods divided by number of dimensions
         for log probability in bits per dimension
+        :param clip_loss_plot: max y value for plot (optional)
         """
+        df = pd.DataFrame({"Train": self._train, "Validation": self._val})
+        # store logs to file
+        log_f = "{}/logs.txt".format(self.log_dir)
+        with open(log_f, "w") as f:
+            df.to_string(f, index=False)
+        # plot logs
         plt.clf()
-        plt.plot(self._i, self._train, label="Train")
-        plt.plot(self._i, self._val, label="Validation")
+        df.plot()
         plt.axhline(y=test_set_logprob, label="Test set", linestyle="--", color="g")
         plt.legend()
         plt.title("Train and Validation Log Probs during learning")
         plt.xlabel("# iterations")
         plt.ylabel("Log prob (bits per dimension)")
-        plt.savefig("figures/{}/{}-train.svg".format(self.q, self.model_name))
+        if clip_loss_plot is not None:
+            plt.ylim(top=clip_loss_plot)
+        plt.savefig("{}/{}-train.svg".format(self.log_dir, self.model_name))
         plt.draw()
         plt.pause(0.001)

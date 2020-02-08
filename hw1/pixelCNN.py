@@ -267,18 +267,18 @@ class PixelCNN:
         return images
 
 
-def plot_image(image, title, n_vals=3):
+def plot_image(image, dir_path, title, n_vals=3):
     plt.clf()
     # We use values [0, ..., 3] so we rescale colours for plotting
     plt.imshow((image * 255. / n_vals).astype(np.uint8), cmap="gray")
     if title is not None:
         plt.title(title)
-        plt.savefig("figures/1_3/{}.svg".format(title))
+        plt.savefig("{}/{}.svg".format(dir_path, title))
     plt.draw()
     plt.pause(0.001)
 
 
-def display_image_grid(data, title):
+def display_image_grid(data, dir_path, title):
     """
     data is shape (n, h, w, c)
     nd is sqrt(n) t0 make grid
@@ -299,7 +299,7 @@ def display_image_grid(data, title):
     title = "{}-grid".format(title) if title is not None else None
     if c == 1:
         disp = np.squeeze(disp)
-    plot_image(disp, title)
+    plot_image(disp, dir_path, title)
 
 
 def test_maskA():
@@ -322,7 +322,7 @@ def display_mask(mask, title):
         plt.text(j, 15.5, letters[i])
         plt.text(-1.5, j, letters[i])
     plt.tick_params(labelbottom=False, labelleft=False)
-    plot_image(disp, title)
+    plot_image(disp, "figures/1_3", title)
 
 
 def test_maskB():

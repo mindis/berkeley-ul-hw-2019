@@ -246,7 +246,7 @@ def display_mask_reshape(masks, kernel_size, n, c, i):
     # plots n rows of images
     disp = np.concatenate(mask_flat, axis=0)
     print(disp.shape)
-    plot_image(disp, None)
+    plot_image(disp, "figures/1_3", None)
 
 
 def tf_reshape_masks():

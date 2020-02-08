@@ -16,15 +16,15 @@ def load_data(pct_val=0.15):
 
 def plot_data():
     X_train, X_val, X_test = load_data()
-    display_image_grid(X_train[:9], "Training-Data")
+    display_image_grid(X_train[:9], "figures/1_3", "Training-Data")
 
 
 def set_seed(seed=100):
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
-# TODO: back to log_every=100
-def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=128, log_every=1, sample_every=500):
+
+def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=128, log_every=100, sample_every=500):
     """
     Run training loop.
     Note sampling and validation take a while so we do them periodically.
@@ -47,19 +47,19 @@ def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=128, lo
             training_logger.add(i, logprob, val_logprob)
         if i % sample_every == 0 and i > 0:
             # draw some samples for visualising training performance
-            sample_model(model, 4, " " + str(i))
+            sample_model(model, 4, training_logger.log_dir, label=" " + str(i))
 
 
 def eval_model(model, X_test, training_logger, bs=128):
     test_logprob = model.eval_batch(X_test, bs=bs)
-    training_logger.plot(float(test_logprob))
+    training_logger.plot(float(test_logprob), clip_loss_plot=2.5)
     # this can take a while, less samples is quicker, ideally 100
-    sample_model(model, 9, " final")
+    sample_model(model, 9, training_logger.log_dir, label=" final")
 
 
-def sample_model(model, n, label=""):
+def sample_model(model, n, dir_path, label=""):
     samples = model.get_samples(n)
-    display_image_grid(samples, "Samples from PixelCNN" + label)
+    display_image_grid(samples, dir_path, "Samples from PixelCNN" + label)
 
 
 def pixel_cnn_main(model):
@@ -67,11 +67,11 @@ def pixel_cnn_main(model):
     Run pixel CNN: Loads data, trains model and evaluates final samples and test set
     """
     X_train, X_val, X_test = load_data()
-    train_and_eval_main(X_test, X_train, X_val, model)
+    train_and_eval_main(X_test, X_train, X_val, model, "main")
 
 
-def train_and_eval_main(X_test, X_train, X_val, model, **kwargs):
-    training_logger = TrainingLogger(model.name, "1_3")
+def train_and_eval_main(X_test, X_train, X_val, model, exp_name, **kwargs):
+    training_logger = TrainingLogger(str(model.name) + "-" + str(exp_name), "1_3")
     train_model(X_train, X_val, model, training_logger, **kwargs)
     eval_model(model, X_test, training_logger)
 
@@ -116,9 +116,9 @@ def pixel_cnn_debug(model, one_pattern=True):
     X_train, X_val, X_test = debug_data()
     if one_pattern:
         X_train = np.repeat(X_train[0][None], 1000, axis=0)
-        train_and_eval_main(X_train, X_train, X_train, model, log_every=10, n_iters=50)
+        train_and_eval_main(X_train, X_train, X_train, model, "debug", log_every=10, n_iters=50)
     else:
-        train_and_eval_main(X_test, X_train, X_val, model, log_every=10, n_iters=100)
+        train_and_eval_main(X_test, X_train, X_val, model, "debug", log_every=10, n_iters=100)
 
 
 def plot_debug_data():
@@ -136,7 +136,7 @@ def pixel_cnn_few(model, n=1):
     data = X_train[:n]
     if n == 1:
         data = np.repeat(data, 2, axis=0)
-    train_and_eval_main(data, data, data, model)
+    train_and_eval_main(data, data, data, model, "few")
 
 
 if __name__ == "__main__":
