@@ -90,9 +90,13 @@ PixelCNN - reapeatable training loss PASSED
 Updated training logger and plotting
 Checked DS code with github and it's as is but adapted for TF versions
 
-* Bench mark my model and DS model as they are now
-    - My model slower - DS does 4k iter in 1h
-    - Lower LR and still more jumpy loss
+* Bench mark my model and DS model as they are now, doing both with 10e-3 LR initially though I
+think my model prefers lower LR - why??
+* My model slower on an initial run - DS does 4k iter in 1h on PC
+    * May be ok now I optimised a bit
+    * Look at timing and timing parts of (note tf.function slower on it's first call)
+    * Compare sampling with numpy and tfp - is that an issue? (think I looked at this before with emprical
+    plots but worth confirming by running both w/ all else same?)
 * Check DS model still at his base code
 * Then add my code incrementally to DS code and debug
 * see other TODOs above and comments

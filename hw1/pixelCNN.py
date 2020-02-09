@@ -149,7 +149,7 @@ class PixelCNNModel(tf.keras.Model):
 
 # eval, eval_batch, train_step, forward, loss, sample
 class PixelCNN:
-    def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=10e-4):
+    def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=10e-3):
         """
         H, W, C image shape: height, width, channels
         n_vals the number of values each channel can take on
@@ -165,7 +165,6 @@ class PixelCNN:
     def setup_model(self):
         self.model = PixelCNNModel(self.H, self.W, self.C, self.n_vals)
 
-    @tf.function
     def loss(self, labels, logits):
         """
         probs are outputs of forward model, a probability for each image (N, )
@@ -179,7 +178,6 @@ class PixelCNN:
         neg_logprob_bit = tf_log_to_base_n(loss, 2)
         return neg_logprob_bit
 
-    @tf.function
     def forward_logits(self, x):
         """
         Forward pass returning full (flat) logits from model (N, H * W, C, N_V)
@@ -200,7 +198,6 @@ class PixelCNN:
         probs = tf.nn.softmax(logits_64, axis=-1)
         return probs
 
-    @tf.function
     def train_step(self, X_train):
         """
         Takes batch of data X_train
@@ -213,23 +210,22 @@ class PixelCNN:
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob.numpy()
 
-    @tf.function
-    def eval_batch(self, X, bs=128):
+    def eval_batch(self, X, bs=64):
         """
         computes forward pass then logprob on the outputs
         X is batched in to handle large data
         note this returns mean logprob over batch
-        returns numpy array
+        returns numpy array loss on batch
         """
         # for small batch just eval it
         if len(X) <= bs:
-            return self.eval(X).numpy()
+            return self.eval(X)
         else:
             # otherwise evaluate in batches
             neg_logprobs_bits = []
             # eval in batches
             for i in range(len(X) // bs):
-                neg_logprobs_bits.append(self.eval(X[i * bs: (i + 1) * bs]))
+                neg_logprobs_bits.append(self.eval(X[i * bs: (i + 1) * bs]).numpy())
             # mean of batches
             mean_nll = tf.reduce_mean(neg_logprobs_bits)
             # deal with leftover data if not a multiple of batch size
@@ -243,7 +239,7 @@ class PixelCNN:
                 # weight the mean of the batches and extra data
                 n_extra = len(extra_data)
                 mean_nll = ((len(X) - n_extra) / len(X)) * mean_nll + (n_extra / len(X)) * extra_data_nll_bits
-            return mean_nll.numpy()
+            return mean_nll
 
     @tf.function
     def eval(self, X):
@@ -257,7 +253,6 @@ class PixelCNN:
         loss = self.loss(X, logits)
         return loss
 
-    @tf.function
     def get_samples(self, n, seed=123):
         """
         Generation is done from blank image (all 0s), we then sample R channel
@@ -266,7 +261,7 @@ class PixelCNN:
         """
         images = np.zeros((n, self.H, self.W, self.C))
         # start with random values for first channel of first pixel (this is updated in first pass)
-        images[:, 0, 0, 0] = np.random.choice(self.n_vals, size=n)
+        images[:, 0, 0, 0] = np.random.choice(self.n_vals, n)
         for h in range(self.H):
             for w in range(self.W):
                 for c in range(self.C):
