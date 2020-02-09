@@ -165,6 +165,7 @@ class PixelCNN:
     def setup_model(self):
         self.model = PixelCNNModel(self.H, self.W, self.C, self.n_vals)
 
+    @tf.function
     def loss(self, labels, logits):
         """
         probs are outputs of forward model, a probability for each image (N, )
@@ -178,6 +179,7 @@ class PixelCNN:
         neg_logprob_bit = tf_log_to_base_n(loss, 2)
         return neg_logprob_bit
 
+    @tf.function
     def forward_logits(self, x):
         """
         Forward pass returning full (flat) logits from model (N, H * W, C, N_V)
@@ -187,6 +189,7 @@ class PixelCNN:
         logits = self.model(x)
         return logits
 
+    @tf.function
     def forward_softmax(self, x):
         """
         Fwd pass retuning softmax values in image shape (N, H, W, C, N_V)
@@ -197,6 +200,7 @@ class PixelCNN:
         probs = tf.nn.softmax(logits_64, axis=-1)
         return probs
 
+    @tf.function
     def train_step(self, X_train):
         """
         Takes batch of data X_train
@@ -209,6 +213,7 @@ class PixelCNN:
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob.numpy()
 
+    @tf.function
     def eval_batch(self, X, bs=128):
         """
         computes forward pass then logprob on the outputs
@@ -240,6 +245,7 @@ class PixelCNN:
                 mean_nll = ((len(X) - n_extra) / len(X)) * mean_nll + (n_extra / len(X)) * extra_data_nll_bits
             return mean_nll.numpy()
 
+    @tf.function
     def eval(self, X):
         """
         Runs forward pass and loss
@@ -251,6 +257,7 @@ class PixelCNN:
         loss = self.loss(X, logits)
         return loss
 
+    @tf.function
     def get_samples(self, n, seed=123):
         """
         Generation is done from blank image (all 0s), we then sample R channel
