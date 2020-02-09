@@ -149,7 +149,7 @@ class PixelCNNModel(tf.keras.Model):
 
 # eval, eval_batch, train_step, forward, loss, sample
 class PixelCNN:
-    def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=10e-3):
+    def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=10e-4):
         """
         H, W, C image shape: height, width, channels
         n_vals the number of values each channel can take on
@@ -219,7 +219,7 @@ class PixelCNN:
         """
         # for small batch just eval it
         if len(X) <= bs:
-            return self.eval(X)
+            return self.eval(X).numpy()
         else:
             # otherwise evaluate in batches
             neg_logprobs_bits = []
@@ -235,7 +235,7 @@ class PixelCNN:
                 extra_data = [extra_data]
             if len(extra_data) > 0:
                 # evaluate extra data
-                extra_data_nll_bits = self.eval(extra_data)
+                extra_data_nll_bits = self.eval(extra_data).numpy()
                 # weight the mean of the batches and extra data
                 n_extra = len(extra_data)
                 mean_nll = ((len(X) - n_extra) / len(X)) * mean_nll + (n_extra / len(X)) * extra_data_nll_bits
