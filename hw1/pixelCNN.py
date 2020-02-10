@@ -57,7 +57,7 @@ def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channel
 
 
 class MaskedCNN(tf.keras.layers.Conv2D):
-    def __init__(self, n_filters, kernel_size, isTypeA, activation=None, **kwargs):
+    def __init__(self, n_filters, kernel_size, isTypeA, factorised, activation=None, **kwargs):
         """
         n_filters and kernel_size for conv layer
         isTypeA for mask type
@@ -66,11 +66,13 @@ class MaskedCNN(tf.keras.layers.Conv2D):
         super(MaskedCNN, self).__init__(n_filters, kernel_size, padding="SAME",
                                         activation=activation, **kwargs)
         self.isTypeA = isTypeA
+        self.factorised = factorised
 
     def build(self, input_shape):
         super().build(input_shape)
         (_, _, in_channels, out_channels) = self.kernel.shape
-        self.mask = get_pixelcnn_mask(self.kernel_size[0], in_channels, out_channels, self.isTypeA)
+        self.mask = get_pixelcnn_mask(self.kernel_size[0], in_channels, out_channels, self.isTypeA,
+                                      factorised=self.factorised)
 
     def call(self, inputs):
         # mask kernel for internal conv op, but then return to copy of kernel after for learning
@@ -82,15 +84,16 @@ class MaskedCNN(tf.keras.layers.Conv2D):
 
 
 class MaskedResidualBlock(tf.keras.layers.Layer):
-    def __init__(self, n_filters):
+    def __init__(self, n_filters, factorised):
         super().__init__()
         self.n_filters = n_filters
+        self.factorised = factorised
 
     def build(self, input_shape):
         # 1x1 relu filter, then 3x3 then 1x1
-        self.layer1 = MaskedCNN(self.n_filters, 1, False)
-        self.layer2 = MaskedCNN(self.n_filters, 3, False)
-        self.layer3 = MaskedCNN(self.n_filters * 2, 1, False)
+        self.layer1 = MaskedCNN(self.n_filters, 1, False, self.factorised)
+        self.layer2 = MaskedCNN(self.n_filters, 3, False, self.factorised)
+        self.layer3 = MaskedCNN(self.n_filters * 2, 1, False, self.factorised)
 
     def call(self, inputs):
         """
@@ -111,7 +114,7 @@ class PixelCNNModel(tf.keras.Model):
     Returns logits for softmax (N, h*w, c, n_vals)
     """
 
-    def __init__(self, H, W, C, n_vals, flat=False, *args, **kwargs):
+    def __init__(self, H, W, C, n_vals, factorised, flat=False, *args, **kwargs):
         """
         :param flat: whether to keep flat or reshape each value for each channel variable
             if true then (bs, H, W, C * N) otherwise reshapes into logits (bs, H, W, C, N)
@@ -123,15 +126,16 @@ class PixelCNNModel(tf.keras.Model):
         self.C = C
         self.n_filters = 128
         self.flat = flat
+        self.factorised = factorised
 
     def build(self, input_shape, **kwargs):
-        self.layer1 = MaskedCNN(self.n_filters * 2, 7, True)
-        self.res_layers = [MaskedResidualBlock(self.n_filters) for _ in range(12)]
+        self.layer1 = MaskedCNN(self.n_filters * 2, 7, True, self.factorised)
+        self.res_layers = [MaskedResidualBlock(self.n_filters, self.factorised) for _ in range(12)]
         # want ReLU applied first as per paper
         self.relu_conv1x1 = [tf.keras.layers.ReLU(),
-                             MaskedCNN(self.n_filters, 1, False)]
+                             MaskedCNN(self.n_filters, 1, False, self.factorised)]
         self.output_conv = [tf.keras.layers.ReLU(),
-                            MaskedCNN(self.n_vals * self.C, 1, False)]
+                            MaskedCNN(self.n_vals * self.C, 1, False, self.factorised)]
 
     def call(self, inputs, training=None, mask=None):
         img = tf.cast(inputs, tf.float32)
@@ -149,7 +153,7 @@ class PixelCNNModel(tf.keras.Model):
 
 # eval, eval_batch, train_step, forward, loss, sample
 class PixelCNN:
-    def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=10e-4):
+    def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=10e-4, factorised=True):
         """
         H, W, C image shape: height, width, channels
         n_vals the number of values each channel can take on
@@ -160,10 +164,16 @@ class PixelCNN:
         self.W = W
         self.C = C
         self.n_vals = n_vals
+        self.factorised = factorised
+        self.learning_rate = learning_rate
         self.setup_model()
 
+    def __str__(self):
+        return "Name: {}\nFactorised: {}\nLearning rate: {}".format(self.name,
+                                                                    self.factorised, self.learning_rate)
+
     def setup_model(self):
-        self.model = PixelCNNModel(self.H, self.W, self.C, self.n_vals)
+        self.model = PixelCNNModel(self.H, self.W, self.C, self.n_vals, self.factorised)
 
     def loss(self, labels, logits):
         """
@@ -286,8 +296,8 @@ class PixelCNN:
                     model_preds = self.forward_softmax(images)
                     # categorical over pixel values
                     for i in range(n):
-                        images[i, h, w, c] = np.random.choice(self.N, p=model_preds[i, h, w, c])
-                return images
+                        images[i, h, w, c] = np.random.choice(self.n_vals, p=model_preds[i, h, w, c])
+        return images
 
 
 def plot_image(image, dir_path, title, n_vals=3):

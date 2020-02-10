@@ -7,7 +7,6 @@ PixelCNN
     Full
         works on debug, bit dubious but seems to learn something on few (single)
         Main w/ 4,000 iterations -
-2* try 4k iter on full
 
 PixelCNN-MADE
     Factorised
@@ -23,8 +22,6 @@ why is this lower than they report?
     performs better on new batching, more monotonic decrease of loss, samples are good
 10e-3 on theirs
     seems noisy and jumpy, samples quite poor
-* compare and debug to yours
-3* swap in parts eg. masking function
 
 Swapping in masking functions
     Their masking function in my model (pixelcnn) gets to 0.133 loss, but samples are poor
@@ -40,7 +37,6 @@ Swapping in masking functions
 Have changed my architecture to match the paper and DS code (removed one of the 1x1 output conv layers)
 Have read through the code and mostly seems similar to mine, have made note below of a few things to check:
     DONE compare the masking
-    * any difference in the conv I use vs DS?
 TFP and NP sampling is empirically very similar (see PixelCNN_DS.compare_sampling)
 
 14/01
@@ -61,19 +57,16 @@ sort factorised=True masking
     Loss does seem to get there - 0.18 at 1900, it's just jumpy
     with lower lR (5e-4) - still jumpy loss decrease - why?
     try look at model for differences
-        * grad clipping?
-        * int vs float in mask a bug? try int and float to compare.
 
 running new masking on full
     loss gets down to 0.15 in 2000, samples not great but are getting there
     final loss in 4k, 0.154, samples seem to have some quality and semblance but not quite there yet -> debug
-    * debug
 
 Note the best loss I've had is 0.13 but DS's gets to 0.127 (and less than 0.05 with MADE)
 
 next:
     * masking with ints vs floats (factorised) to compare if same 
-    * compare convs (mark as DONE above when done)
+    * compare convs
     * figure out why factorised model not good as it can be (jumpy loss)
     * figure out why full model samples not great
 
@@ -87,6 +80,8 @@ PixelCNN - reapeatable training loss PASSED
 
 08/02/2020
 
+Note here used both mine and DS with factorised=True
+
 Updated training logger and plotting
 Checked DS code with github and it's as is but adapted for TF versions
 
@@ -96,10 +91,17 @@ Have optimised performance now and it's quicker than DS
 Benchmarked my model and DS model as they are now
 My model better with lower LR, but overall the losses seem similar on mine and DS, samples seem worse in mine
 
+Ran mine with numpy sampling and the sample quality no better.
+But only the sampling was changed and yet the losses are different. This could be
+from GPU or is change needed for repeatability?
+
+Trying mine and DS as are to benchmark w factorised=False
+
+- is there something else that needs seeding / repeatability
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 
-* NEXT: Run mine with numpy sampling
+* NOW: run both factorised
 * Then add my code incrementally to DS code and debug
 * see other TODOs above and comments
 

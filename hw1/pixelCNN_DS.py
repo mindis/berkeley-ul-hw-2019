@@ -90,6 +90,7 @@ class PixelCNNDS:
         self.C = C
         self.N = N
         self.factorized = factorized
+        self.learning_rate = learning_rate
         self.optimiser = tf.compat.v1.train.AdamOptimizer(learning_rate)
         tf.compat.v1.disable_eager_execution()
         tf.compat.v1.disable_v2_behavior()
@@ -99,6 +100,10 @@ class PixelCNNDS:
         self.sess = tf.compat.v1.Session()
         self.setup_model()
         self.sess.run(tf.compat.v1.global_variables_initializer())
+
+    def __str__(self):
+        return "Name: {}\nFactorised: {}\nLearning rate: {}".format(self.name,
+                                                                    self.factorised, self.learning_rate)
 
     def setup_model(self):
         self.x_ph = tf.compat.v1.placeholder(tf.float32, shape=(None, self.H, self.W, self.C))

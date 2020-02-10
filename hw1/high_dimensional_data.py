@@ -72,6 +72,7 @@ def pixel_cnn_main(model):
 
 def train_and_eval_main(X_test, X_train, X_val, model, exp_name, **kwargs):
     training_logger = TrainingLogger(str(model.name) + "-" + str(exp_name), "1_3")
+    training_logger.log_config(model)
     train_model(X_train, X_val, model, training_logger, **kwargs)
     eval_model(model, X_test, training_logger)
 
