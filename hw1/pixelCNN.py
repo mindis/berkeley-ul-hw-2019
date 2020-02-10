@@ -169,7 +169,7 @@ class PixelCNN:
         self.setup_model()
 
     def __str__(self):
-        return "Name: {}\nFactorised: {}\nLearning rate: {}".format(self.name,
+        return "Name: {}\nFactorised: {}\nLearning rate: {}\n".format(self.name,
                                                                     self.factorised, self.learning_rate)
 
     def setup_model(self):

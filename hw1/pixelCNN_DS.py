@@ -102,7 +102,7 @@ class PixelCNNDS:
         self.sess.run(tf.compat.v1.global_variables_initializer())
 
     def __str__(self):
-        return "Name: {}\nFactorised: {}\nLearning rate: {}".format(self.name,
+        return "Name: {}\nFactorised: {}\nLearning rate: {}\n".format(self.name,
                                                                     self.factorised, self.learning_rate)
 
     def setup_model(self):
