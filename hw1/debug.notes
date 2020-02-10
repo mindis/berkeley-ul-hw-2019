@@ -97,11 +97,23 @@ from GPU or is change needed for repeatability?
 
 Trying mine and DS as are to benchmark w factorised=False
 
+Also ran both factorised = False
+Both achieve lower loss that with factorised = True
+Again, v similar loss values but samples better in DS code
+
+Adding my code to DS:
+1st - masking (factorised = True)
+Loss jumps at end and samples get v poor, but most samples during training are similar to DS
+
+Looking at it with more fresh eyes, I do think the sample quality is actually quite similar
+between mine and DS.
+Will do some more sanity checks on masking to be sure.
+
 - is there something else that needs seeding / repeatability
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 
-* NOW: run both factorised
-* Then add my code incrementally to DS code and debug
+* NOW: do an automated test with random inputs to see if mine and DS masks match
+* THEN: add some more of my code to DS and run again
 * see other TODOs above and comments
 

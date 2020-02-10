@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from pixelCNN import get_pixelcnn_mask, display_mask, plot_image
 
 
-def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
+def get_mask_DS(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
     mask = np.zeros(shape=(kernel_size, kernel_size, channels_in, channels_out), dtype=np.float32)
     mask[:kernel_size // 2, :, :, :] = 1
     mask[kernel_size // 2, :kernel_size // 2, :, :] = 1
@@ -28,6 +28,10 @@ def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, 
         mask[kernel_size // 2, kernel_size // 2, :, :] = mask_ch
 
     return mask
+
+# MY MASKING W/ DS CODE
+def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
+    return get_pixelcnn_mask(kernel_size, channels_in, channels_out, mask_type == "A", input_channels, factorized)
 
 
 def masked_conv2d(x, channels_out, kernel_size, input_channels, mask_type, factorized):
@@ -83,8 +87,8 @@ def res_block(x_in, channels_out=128, input_channels=None, factorized=True):
 
 
 class PixelCNNDS:
-    def __init__(self, H=28, W=28, C=3, N=4, factorized=True, learning_rate=10e-3, seed=1234):
-        self.name = "PixelCNN-DS"
+    def __init__(self, H=28, W=28, C=3, N=4, factorized=False, learning_rate=10e-3, seed=1234):
+        self.name = "PixelCNN-DS-DEBUG"
         self.H = H
         self.W = W
         self.C = C
@@ -103,7 +107,7 @@ class PixelCNNDS:
 
     def __str__(self):
         return "Name: {}\nFactorised: {}\nLearning rate: {}\n".format(self.name,
-                                                                    self.factorised, self.learning_rate)
+                                                                    self.factorized, self.learning_rate)
 
     def setup_model(self):
         self.x_ph = tf.compat.v1.placeholder(tf.float32, shape=(None, self.H, self.W, self.C))
