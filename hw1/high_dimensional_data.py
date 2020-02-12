@@ -47,17 +47,17 @@ def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=64, log
             training_logger.add(i, logprob, val_logprob)
         if i % sample_every == 0 and i > 0:
             # draw some samples for visualising training performance
-            sample_model(model, 4, training_logger.log_dir, label=" " + str(i))
+            sample_and_display(model, 4, training_logger.log_dir, label=" " + str(i))
 
 
 def eval_model(model, X_test, training_logger, bs=128):
     test_logprob = model.eval_batch(X_test, bs=bs)
     training_logger.plot(float(test_logprob), ymax=2.5)
     # this can take a while, less samples is quicker, ideally 100
-    sample_model(model, 9, training_logger.log_dir, label=" final")
+    sample_and_display(model, 9, training_logger.log_dir, label=" final")
 
 
-def sample_model(model, n, dir_path, label=""):
+def sample_and_display(model, n, dir_path, label=""):
     samples = model.get_samples(n)
     display_image_grid(samples, dir_path, "Samples from PixelCNN" + label)
 

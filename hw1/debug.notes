@@ -96,6 +96,8 @@ Have optimised performance now and it's quicker than DS
 Benchmarked my model and DS model as they are now
 My model better with lower LR, but overall the losses seem similar on mine and DS, samples seem worse in mine
 
+Matched 1000 masks with random parameters between mine and DS masking functions.
+
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 

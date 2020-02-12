@@ -231,6 +231,32 @@ def compare_masks():
     display_mask(mask_ds, None)
 
 
+def test_compare_masks(n=1000):
+    """
+    Test n different random parameters that the masks are equal.
+    """
+    np.random.seed(1)
+    not_similar = 0
+    for i in range(n // 2):
+        kernel_size = np.random.randint(1, 18, 1)[0]
+        in_c = np.random.randint(1, 512, 1)[0]
+        out_c = np.random.randint(1, 512, 1)[0]
+        n_c = np.random.randint(1, 9, 1)[0]
+        factorised = np.round(np.random.random(1))[0]  # bool
+        mask_type = np.random.choice(["A", "B"], 1)[0]
+        ds = get_pixelcnn_mask(kernel_size, in_c, out_c, mask_type=="A", n_c, factorised)
+        me = get_mask(kernel_size, in_c, out_c, n_c, mask_type, factorised)
+        if not np.allclose(ds, me):
+            print("Kernel size: {}, In: {}, Out: {}, N: {}, mask type: {}, Factorised: {}".format(kernel_size, in_c,
+                                                                                                  out_c, n_c,
+                                                                                                  mask_type=="A",
+                                                                                                  factorised))
+            not_similar += 1
+    print("\n{} / {} masks matched".format(n - not_similar, n))
+    if not_similar == 0:
+        print("PASSED!")
+
+
 def display_mask_reshape(masks, kernel_size, n, c, i):
     """
     Displays the ith input channel's masks in N x C grid
@@ -272,4 +298,5 @@ def tf_reshape_masks():
 if __name__ == "__main__":
     # compare_sampling()
     # compare_masks()
-    tf_reshape_masks()
+    # tf_reshape_masks()
+    test_compare_masks()

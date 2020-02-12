@@ -45,10 +45,6 @@ class BatchData:
         return self.X[inds]
 
 
-def get_batch(X, bs):
-    pass
-
-
 class TrainingLogger:
     def __init__(self, model_name, q):
         """

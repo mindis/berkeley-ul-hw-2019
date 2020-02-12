@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import tensorflow_probability as tfp
 from mlp_model import MLPModel
 from MADE import MADE
-from utils import get_batch, TrainingLogger, BatchData
+from utils import TrainingLogger, BatchData
 
 """
 distribution: 2D array where (i, j) is p(x1 = i, x2 = j)
