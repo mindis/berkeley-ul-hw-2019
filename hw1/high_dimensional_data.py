@@ -7,15 +7,20 @@ from utils import TrainingLogger, BatchData
 import argparse
 
 
-def load_data(pct_val=0.15):
+def load_data():
+    """
+    Not a perfect split as should have some validation data.
+    Uses test data as validation here since our interest is generative.
+    :return: train data, test data as tf.data.Datasets
+    """
     data = np.load("mnist-hw1.pkl", allow_pickle=True)
-    train_data = data["train"]
-    np.random.shuffle(train_data)
-    return train_data[int(len(train_data) * pct_val):], train_data[:int(len(train_data) * pct_val)], data["test"]
+    train_data = tf.data.Dataset.from_tensor_slices(data["train"])
+    test_data = tf.data.Dataset.from_tensor_slices(data["test"])
+    return train_data, test_data
 
 
 def plot_data():
-    X_train, X_val, X_test = load_data()
+    X_train, X_test = load_data()
     display_image_grid(X_train[:9], "figures/1_3", "Training-Data")
 
 
@@ -24,35 +29,40 @@ def set_seed(seed=100):
     tf.random.set_seed(seed)
 
 
-def train_model(X_train, X_val, model, training_logger, n_iters=4000, bs=64, log_every=100, sample_every=500):
+def train_model(X_train, X_test, model, training_logger, n_epochs=3, bs=64, log_every=10):
     """
     Run training loop.
     Note sampling and validation take a while so we do them periodically.
     :param X_train: train data
-    :param X_val: val data
+    :param X_test: test /val data to check loss unseen during training
     :param model: model to train
     :param training_logger: logger to update with train and val scores
-    :param n_iters: number of iterations
+    :param n_epochs: number of epochs to complete
     :param bs: batch size
-    :param log_every: iterations to log at multiples of
-    :param sample_at: iterations to sample 4 images at multiples of
+    :param log_every: # batches to log at multiples of
     """
-    batch_data = BatchData(X_train, bs)
-    for i in range(n_iters+1):
-        batch = batch_data.get_batch()
-        logprob = model.train_step(batch)
-        if i % log_every == 0:
-            # get validation performance and add to logs
-            val_logprob = model.eval_batch(X_val)
-            training_logger.add(i, logprob, val_logprob)
-        if i % sample_every == 0 and i > 0:
-            # draw some samples for visualising training performance
-            sample_and_display(model, 4, training_logger.log_dir, label=" " + str(i))
+    train_iter = X_train.shuffle(bs * 2).batch(bs)
+    i = 0
+    for epoch in range(n_epochs):
+        for batch in train_iter:
+            logprob = model.train_step(batch)
+            if i % log_every == 0:
+                # get validation performance and add to logs
+                val_logprob = model.eval_dataset(X_test)
+                training_logger.add(i, logprob, val_logprob)
+            i += 1
+        # draw some samples for visualising training performance each epoch
+        print("Finished epoch {}, sampling.".format(epoch))
+        sample_and_display(model, 4, training_logger.log_dir, label=" " + str(i))
+    # add final val / test logprob
+    val_logprob = model.eval_dataset(X_test)
+    training_logger.add(i, logprob, val_logprob)
+    print("Finished training.")
 
 
-def eval_model(model, X_test, training_logger, bs=128):
-    test_logprob = model.eval_batch(X_test, bs=bs)
-    training_logger.plot(float(test_logprob), ymax=2.5)
+def eval_model(model, training_logger):
+    print("Plotting and sampling.")
+    training_logger.plot(ymax=2.5)
     # this can take a while, less samples is quicker, ideally 100
     sample_and_display(model, 16, training_logger.log_dir, label=" final")
 
@@ -66,25 +76,27 @@ def pixel_cnn_main(model):
     """
     Run pixel CNN: Loads data, trains model and evaluates final samples and test set
     """
-    X_train, X_val, X_test = load_data()
-    train_and_eval_main(X_test, X_train, X_val, model, "main")
+    X_train, X_test = load_data()
+    train_and_eval_main(X_train, X_test, model, "main")
 
 
-def train_and_eval_main(X_test, X_train, X_val, model, exp_name, **kwargs):
+def train_and_eval_main(X_train, X_test, model, exp_name, **kwargs):
     training_logger = TrainingLogger(str(model.name) + "-" + str(exp_name), "1_3")
     training_logger.log_config(model)
-    train_model(X_train, X_val, model, training_logger, **kwargs)
-    eval_model(model, X_test, training_logger)
+    train_model(X_train, X_test, model, training_logger, **kwargs)
+    eval_model(model, training_logger)
 
 
-def debug_data(n_samples=10000, pct_val=0.15, pct_test=0.2):
+def debug_data(one_pattern, n_samples=1000, pct_test=0.2):
     """
+    :param one_pattern: if true then data is all the same example, o/w noise is added
+    to make a dataset
     Provides a simple dataset that should be easy to learn for debugging model.
     3 channels each 0, 1, 2 or 3, like real data but size 4 x 4 images
     checkerboard with low as 0 or 1 and high as 2 or 3.
     and some randomly perturbed squares
     """
-    pct_train = 1.0 - pct_val - pct_test
+    pct_train = 1.0 - pct_test
     data = []
     # iterate over all checkerboard patterns
     for low in range(2):
@@ -105,8 +117,13 @@ def debug_data(n_samples=10000, pct_val=0.15, pct_test=0.2):
     # clip to valid values
     data = np.clip(data, 0, 3)
     np.random.shuffle(data)
-    return data[:int(n_samples * pct_train)], data[int(n_samples * pct_train):int(n_samples * (pct_train+pct_val))], \
-           data[int(n_samples * (pct_train+pct_val)):]
+    if one_pattern:
+        train_data = tf.data.Dataset.from_tensor_slices([data[0]] * int(n_samples * pct_train))
+        test_data = tf.data.Dataset.from_tensor_slices([data[0]] * int(n_samples * pct_test))
+    else:
+        train_data = tf.data.Dataset.from_tensor_slices(data[:int(n_samples * pct_train)])
+        test_data = tf.data.Dataset.from_tensor_slices(data[int(n_samples * pct_train):])
+    return train_data, test_data
 
 
 def pixel_cnn_debug(model, one_pattern=True):
@@ -114,30 +131,29 @@ def pixel_cnn_debug(model, one_pattern=True):
     one_pattern: if true repeats a single example to debug overfitting to one sample
     otherwise a sample of perturbed checkerboards are used.
     """
-    X_train, X_val, X_test = debug_data()
-    if one_pattern:
-        X_train = np.repeat(X_train[0][None], 1000, axis=0)
-        train_and_eval_main(X_train, X_train, X_train, model, "debug", log_every=10, n_iters=100)
-    else:
-        train_and_eval_main(X_test, X_train, X_val, model, "debug", log_every=10, n_iters=100)
+    X_train, X_test = debug_data(one_pattern)
+    train_and_eval_main(X_train, X_train, model, "debug", log_every=10, n_epochs=1)
 
 
 def plot_debug_data():
-    X_train, X_val, X_test = debug_data()
+    X_train, X_test = debug_data(False)
     display_image_grid(X_train[:9], "", None)
 
 
-def pixel_cnn_few(model, n=1):
+def pixel_cnn_few(model, n_in=1, n_out=100):
     """
-    Run pixel CNN on subset of size n of data, for running on 1 or few images.
+    Run pixel CNN on subset of full data of size n_in, repeated to make a dataset of
+    size n_out.
     Test and val set are same here.
     A debug / sanity check
     """
-    X_train, _, _ = load_data()
-    data = X_train[:n]
-    if n == 1:
-        data = np.repeat(data, 2, axis=0)
-    train_and_eval_main(data, data, data, model, "few")
+    X_train, _ = load_data()
+    # take n_in and convert to numpy
+    data = np.array([x for x in X_train.take(n_in).as_numpy_iterator()])
+    if len(data) == 1:
+        data = [data]
+    tf_data = tf.data.Dataset.from_tensor_slices(data * int(n_out / n_in))
+    train_and_eval_main(tf_data, tf_data, model, "few", n_epochs=2, log_every=10)
 
 
 if __name__ == "__main__":

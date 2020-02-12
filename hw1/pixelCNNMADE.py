@@ -9,7 +9,7 @@ from MADE import MADEModel, MADE
 from pixelCNN import PixelCNNModel
 from utils import tf_log_to_base_n, tf_log2, gather_nd
 
-
+# TODO need to adapt to new tf.dataset format see picelCNN eg. eval_dataset()
 # wrap model so it can be called in MADE
 class PixelCNNMADEModel(Model):
     def __init__(self, H, W, C, N, n_bottleneck, n_hidden_units, *args, **kwargs):
@@ -67,7 +67,7 @@ class PixelCNNMADE(MADE):
         # TODO: larger n hidden units in MADE?
         self.model = PixelCNNMADEModel(self.H, self.W, self.C, self.N, self.n_bottleneck, self.n_hidden_units)
 
-    def eval_batch(self, X, bs=128):
+    def eval_dataset(self, X, bs=128):
         """
         computes forward pass then logprob on the outputs
         X is batched in to handle large data

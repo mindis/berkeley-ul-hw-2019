@@ -81,7 +81,7 @@ class TrainingLogger:
         self._train.append(train)
         self._val.append(val)
 
-    def plot(self, test_set_logprob, ymax=None):
+    def plot(self, ymax=None):
         """
         Give test set sum of negative log likelihoods divided by number of dimensions
         for log probability in bits per dimension
@@ -91,14 +91,12 @@ class TrainingLogger:
         # store logs to file
         with open(self.log_f, "a") as f:
             df.to_string(f, index=False)
-            f.write("\n\nTest logprob: {}".format(test_set_logprob))
         # plot logs
-        ymin = min(*df.min(), test_set_logprob, 0)
+        ymin = min(*df.min(), 0)
         if ymax is None:
-            ymax = max(*df.max(), test_set_logprob)
+            ymax = max(df.max())
         plt.clf()
         df.plot(ylim=(ymin, ymax))
-        plt.axhline(y=test_set_logprob, label="Test set", linestyle="--", color="g")
         plt.legend()
         plt.title("Train and Validation Log Probs during learning")
         plt.xlabel("# iterations")

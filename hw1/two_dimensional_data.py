@@ -56,17 +56,17 @@ def train_model(X_train, X_val, model, training_logger, bs=10000):
             training_logger.add(i, logprob, val_logprob)
 
 
-def eval_model(model, X_test, training_logger):
+def eval_model(model, training_logger):
     probs = model.get_probs()
     plot_distribution_heatmap(probs, "{}-distribution".format(model.name))
-    test_logprob = model.eval(X_test)
-    training_logger.plot(float(test_logprob))
+    training_logger.plot()
 
 
+# TODO: adapt as high_dimensional_data.py to use X_test as X_val (so no X_val)
 def model_main(model, X_train, X_val, X_test):
     training_logger = TrainingLogger(model.name, "1_2")
     train_model(X_train, X_val, model, training_logger)
-    eval_model(model, X_test, training_logger)
+    eval_model(model, training_logger)
 
 
 def set_seed(seed=100):

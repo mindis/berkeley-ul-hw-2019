@@ -216,40 +216,23 @@ class PixelCNN:
         with tf.GradientTape() as tape:
             logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
-        # TODO: clip norm?
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob.numpy()
 
-    def eval_batch(self, X, bs=64):
+    def eval_dataset(self, X, bs=64):
         """
-        computes forward pass then logprob on the outputs
-        X is batched in to handle large data
-        note this returns mean logprob over batch
-        returns numpy array loss on batch
+        :param X: a tf.data.Dataset
+        computes eval on a tf dataset
+        returns float of mean loss on dataset
         """
-        # for small batch just eval it
-        if len(X) <= bs:
-            return self.eval(X).numpy()
-        else:
-            # otherwise evaluate in batches
-            neg_logprobs_bits = []
-            # eval in batches
-            for i in range(len(X) // bs):
-                neg_logprobs_bits.append(self.eval(X[i * bs: (i + 1) * bs]).numpy())
-            # mean of batches
-            mean_nll = np.mean(neg_logprobs_bits)
-            # deal with leftover data if not a multiple of batch size
-            extra_data = X[(len(X) // bs) * bs:]
-            if len(extra_data) == 1:
-                # add batch dimension if single data
-                extra_data = [extra_data]
-            if len(extra_data) > 0:
-                # evaluate extra data
-                extra_data_nll_bits = self.eval(extra_data).numpy()
-                # weight the mean of the batches and extra data
-                n_extra = len(extra_data)
-                mean_nll = ((len(X) - n_extra) / len(X)) * mean_nll + (n_extra / len(X)) * extra_data_nll_bits
-            return mean_nll
+        n_data = 0
+        weighted_sum = 0
+        for batch in X.shuffle(bs * 2).batch(bs):
+            n = len(batch)
+            loss = self.eval(batch)
+            weighted_sum = loss * n
+            n_data += n
+        return weighted_sum / n_data
 
     @tf.function
     def eval(self, X):
