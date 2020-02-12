@@ -45,19 +45,22 @@ def train_model(X_train, X_test, model, training_logger, n_epochs=3, bs=64, log_
     i = 0
     for epoch in range(n_epochs):
         for batch in train_iter:
+            i += 1
             logprob = model.train_step(batch)
+            training_logger.add(i, logprob)
             if i % log_every == 0:
                 # get validation performance and add to logs
                 val_logprob = model.eval_dataset(X_test)
-                training_logger.add(i, logprob, val_logprob)
-            i += 1
+                training_logger.add_val(i, val_logprob)
         # draw some samples for visualising training performance each epoch
         print("Finished epoch {}, sampling.".format(epoch))
         sample_and_display(model, 4, training_logger.log_dir, label=" " + str(i))
-    # add final val / test logprob
-    val_logprob = model.eval_dataset(X_test)
-    training_logger.add(i, logprob, val_logprob)
+    # add final val / test logprob if didn't before
     print("Finished training.")
+    if i % log_every != 0:
+        print("Final val metrics:")
+        val_logprob = model.eval_dataset(X_test)
+        training_logger.add_val(i, val_logprob)
 
 
 def eval_model(model, training_logger):
@@ -132,7 +135,7 @@ def pixel_cnn_debug(model, one_pattern=True):
     otherwise a sample of perturbed checkerboards are used.
     """
     X_train, X_test = debug_data(one_pattern)
-    train_and_eval_main(X_train, X_train, model, "debug", log_every=10, n_epochs=1)
+    train_and_eval_main(X_train, X_train, model, "debug", log_every=5, n_epochs=1)
 
 
 def plot_debug_data():

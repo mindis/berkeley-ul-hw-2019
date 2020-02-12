@@ -51,8 +51,9 @@ class TrainingLogger:
         :param model_name: model name for logs and plot titles
         :param q: which question for which directory to store plots in
         """
-        self._i = []
+        self._i_train = []
         self._train = []
+        self._i_val = []
         self._val = []
         self.model_name = model_name
         self.setup_logging(q)
@@ -71,14 +72,22 @@ class TrainingLogger:
         with open(self.log_f, "a") as f:
             f.write(str(model) + "\n")
 
-    def add(self, i, train, val):
+    def add(self, i, train):
         """
         i - iteration
         train, val - set log probabilities in bits per dimension
         """
-        print("{} {:>8}:\t Train: {:<6.3f} Val: {:<6.3f}".format(time.strftime("%d %b %Y %H:%M:%S"), i, train, val))
-        self._i.append(i)
+        print("{} {:>8}:\t Train: {:<6.3f}".format(time.strftime("%d %b %Y %H:%M:%S"), i, train))
+        self._i_train.append(i)
         self._train.append(train)
+
+    def add_val(self, i, val):
+        """
+        i - iteration
+        val - set log probabilities in bits per dimension
+        """
+        print("{} {:>8}:\t Val: {:<6.3f}".format(time.strftime("%d %b %Y %H:%M:%S"), i, val))
+        self._i_val.append(i)
         self._val.append(val)
 
     def plot(self, ymax=None):
@@ -87,16 +96,19 @@ class TrainingLogger:
         for log probability in bits per dimension
         :param ymax: max y value for plot (optional)
         """
-        df = pd.DataFrame({"Train": self._train, "Validation": self._val})
+        train_df = pd.DataFrame({"Train": self._train}, index=self._i_train)
+        val_df = pd.DataFrame({"Validation": self._val}, index=self._i_val)
+        df = train_df.join(val_df, how='outer')
         # store logs to file
         with open(self.log_f, "a") as f:
-            df.to_string(f, index=False)
+            df.to_string(f)
         # plot logs
         ymin = min(*df.min(), 0)
         if ymax is None:
             ymax = max(df.max())
         plt.clf()
-        df.plot(ylim=(ymin, ymax))
+        ax = train_df.plot(ylim=(ymin, ymax), marker="x")
+        val_df.plot(ax=ax, ylim=(ymin, ymax), marker="x")
         plt.legend()
         plt.title("Train and Validation Log Probs during learning")
         plt.xlabel("# iterations")
