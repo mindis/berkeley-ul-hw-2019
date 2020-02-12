@@ -109,9 +109,9 @@ Looking at it with more fresh eyes, I do think the sample quality is actually qu
 between mine and DS.
 Will do some more sanity checks on masking to be sure.
 
-- is there something else that needs seeding / repeatability
 Matched 1000 masks with random parameters between mine and DS masking functions.
 
+- is there something else that needs seeding / repeatability
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 
