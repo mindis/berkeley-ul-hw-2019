@@ -55,10 +55,21 @@ class TrainingLogger:
         self._train = []
         self._val = []
         self.model_name = model_name
+        self.setup_logging(q)
+
+    def setup_logging(self, q):
         timestamp = time.strftime("%Y%m%d-%H%M")
-        self.log_dir = "logs/{}/{}-{}".format(q, model_name, timestamp)
+        self.log_dir = "logs/{}/{}-{}".format(q, self.model_name, timestamp)
+        self.log_f = "{}/logs.txt".format(self.log_dir)
         os.makedirs(self.log_dir)
         print("Logging to {}".format(self.log_dir))
+
+    def log_config(self, model):
+        """
+        Writes str(model) as string of model config to logs eg. LR, params etc.
+        """
+        with open(self.log_f, "a") as f:
+            f.write(str(model) + "\n")
 
     def add(self, i, train, val):
         """
@@ -78,8 +89,7 @@ class TrainingLogger:
         """
         df = pd.DataFrame({"Train": self._train, "Validation": self._val})
         # store logs to file
-        log_f = "{}/logs.txt".format(self.log_dir)
-        with open(log_f, "w") as f:
+        with open(self.log_f, "a") as f:
             df.to_string(f, index=False)
             f.write("\n\nTest logprob: {}".format(test_set_logprob))
         # plot logs
