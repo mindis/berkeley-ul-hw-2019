@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from pixelCNN import get_pixelcnn_mask, display_mask, plot_image
 
 
-def get_mask_DS(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
+def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
     mask = np.zeros(shape=(kernel_size, kernel_size, channels_in, channels_out), dtype=np.float32)
     mask[:kernel_size // 2, :, :, :] = 1
     mask[kernel_size // 2, :kernel_size // 2, :, :] = 1
@@ -28,10 +28,6 @@ def get_mask_DS(kernel_size, channels_in, channels_out, input_channels, mask_typ
         mask[kernel_size // 2, kernel_size // 2, :, :] = mask_ch
 
     return mask
-
-# MY MASKING W/ DS CODE
-def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
-    return get_pixelcnn_mask(kernel_size, channels_in, channels_out, mask_type == "A", input_channels, factorized)
 
 
 def masked_conv2d(x, channels_out, kernel_size, input_channels, mask_type, factorized):
