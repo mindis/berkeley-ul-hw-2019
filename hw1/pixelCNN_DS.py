@@ -6,6 +6,8 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+from high_dimensional_data import load_data
 from pixelCNN import get_pixelcnn_mask, display_mask, plot_image
 
 
@@ -299,9 +301,92 @@ def tf_reshape_masks():
     print("Mask DS in shape", mask_ds.shape)
     display_mask_reshape(mask_ds, kernel_size, N, C, i)
 
+## FOR RUNNING DS CODE AS WAS
+
+def pixel_cnn(x, channels_out, factorized):
+    input_channels = x.shape.as_list()[3]
+    inp = tf.cast(x, tf.int32)
+    x = tf.cast(x, tf.float32)
+    with tf.compat.v1.variable_scope('input_conv'):
+        x = masked_conv2d(x, channels_out=128 * 2, kernel_size=7, input_channels=input_channels, mask_type='A',
+                          factorized=factorized)
+    for i in range(12):
+        with tf.compat.v1.variable_scope('res_block_%d' % i):
+            x = res_block(x, channels_out=128, input_channels=input_channels, factorized=factorized)
+    with tf.compat.v1.variable_scope('output_conv_1'):
+        x = tf.nn.relu(x)
+        x = masked_conv2d(x, channels_out=128, kernel_size=1, input_channels=input_channels, mask_type='B',
+                          factorized=factorized)
+    with tf.compat.v1.variable_scope('output_conv_2'):
+        x = tf.nn.relu(x)
+        x = masked_conv2d(x, channels_out=channels_out, kernel_size=1, input_channels=input_channels, mask_type='B',
+                          factorized=factorized)
+
+    x_rshp = tf.reshape(x, [-1, 28, 28, 3, 4])
+    losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=inp, logits=x_rshp)
+    loss = tf.reduce_mean(losses) * np.log2(np.e)
+    probs = tf.nn.softmax(x_rshp)
+    return loss, probs, x
+
+
+def create_dataset(x, batch_size):
+    dataset = tf.data.Dataset.from_tensor_slices(x)
+    dataset = dataset.repeat()   # Repeat the dataset indefinitely
+    dataset = dataset.shuffle(10000)   # Shuffle the data
+    dataset = dataset.batch(batch_size)  # Create batches of data
+    dataset = dataset.prefetch(batch_size)  # Prefetch data for faster consumption
+    iterator = tf.compat.v1.data.make_initializable_iterator(dataset)  # Create an iterator over the dataset
+    return iterator
+
+
+def run_DS():
+    train_data, _, test_data  = load_data(pct_val=0)
+    nrof_epochs = 3  # TODO: was 5
+    batch_size = 128
+    factorized = True
+
+    with tf.Graph().as_default():
+
+        train_iterator = create_dataset(train_data, batch_size)
+        test_iterator = create_dataset(test_data, batch_size)
+        eval_input_ph = tf.compat.v1.placeholder(tf.float32, shape=(None, 28, 28, 3))
+
+        with tf.compat.v1.variable_scope('model', reuse=False):
+            train_loss, _, _ = pixel_cnn(train_iterator.get_next(), channels_out=3 * 4, factorized=factorized)
+        with tf.compat.v1.variable_scope('model', reuse=True):
+            test_loss, _, _ = pixel_cnn(test_iterator.get_next(), channels_out=3 * 4, factorized=factorized)
+            eval_loss, eval_probs, _ = pixel_cnn(eval_input_ph, channels_out=3 * 4, factorized=factorized)
+
+        optimizer = tf.optimizers.Adam(learning_rate=0.001)
+        tvars = tf.compat.v1.trainable_variables()
+        grads, _ = tf.clip_by_global_norm(tf.gradients(train_loss, tvars), 1.0)
+        train_op = optimizer.apply_gradients(zip(grads, tvars))
+
+        sess = tf.compat.v1.InteractiveSession()
+        sess.run(tf.compat.v1.global_variables_initializer())
+        sess.run(train_iterator.initializer)
+        sess.run(test_iterator.initializer)
+
+        nrof_train_batches = train_data.shape[0] // batch_size
+
+        train_loss_list = []
+        for epoch in range(1, nrof_epochs + 1):
+            for i in range(nrof_train_batches):
+                _, loss_ = sess.run([train_op, train_loss])
+                train_loss_list += [loss_]
+                if i % 25 == 0:
+                    print('train epoch: %4d  batch: %4d  loss: %7.3f' % (epoch, i, loss_))
+
+        test_loss_list = []
+        for i in range(test_data.shape[0] // batch_size):
+            loss_ = sess.run([test_loss])
+            test_loss_list += [loss_]
+        print('test epoch: %d  loss: %.3f' % (epoch, np.mean(test_loss_list)))
+
 
 if __name__ == "__main__":
     # compare_sampling()
     # compare_masks()
     # tf_reshape_masks()
-    test_compare_masks()
+    # test_compare_masks()
+    run_DS()

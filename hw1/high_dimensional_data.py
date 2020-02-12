@@ -54,7 +54,7 @@ def eval_model(model, X_test, training_logger, bs=128):
     test_logprob = model.eval_batch(X_test, bs=bs)
     training_logger.plot(float(test_logprob), ymax=2.5)
     # this can take a while, less samples is quicker, ideally 100
-    sample_and_display(model, 9, training_logger.log_dir, label=" final")
+    sample_and_display(model, 16, training_logger.log_dir, label=" final")
 
 
 def sample_and_display(model, n, dir_path, label=""):
