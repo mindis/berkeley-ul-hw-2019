@@ -7,8 +7,7 @@ import tensorflow_probability as tfp
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from high_dimensional_data import load_data
-from pixelCNN import get_pixelcnn_mask, display_mask, plot_image
+from pixelCNN import get_pixelcnn_mask, display_mask, plot_image, display_image_grid
 
 
 def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, factorized=True):
@@ -303,6 +302,14 @@ def tf_reshape_masks():
 
 ## FOR RUNNING DS CODE AS WAS
 
+# Copied from high_dimensional_data.py else circular dependency
+def load_data(pct_val=0.15):
+    data = np.load("mnist-hw1.pkl", allow_pickle=True)
+    train_data = data["train"]
+    np.random.shuffle(train_data)
+    return train_data[int(len(train_data) * pct_val):], train_data[:int(len(train_data) * pct_val)], data["test"]
+
+
 def pixel_cnn(x, channels_out, factorized):
     input_channels = x.shape.as_list()[3]
     inp = tf.cast(x, tf.int32)
@@ -337,6 +344,19 @@ def create_dataset(x, batch_size):
     dataset = dataset.prefetch(batch_size)  # Prefetch data for faster consumption
     iterator = tf.compat.v1.data.make_initializable_iterator(dataset)  # Create an iterator over the dataset
     return iterator
+
+
+def sample(sess, eval_loss, eval_probs, eval_input_ph, nrof_images, noise=None):
+    img = np.zeros((nrof_images, 28, 28, 3), dtype=np.uint8)
+    img[:, 0, 0, 0] = np.random.choice(4, size=(nrof_images,))
+    for j in range(28):
+        for k in range(28):
+            for l in range(3):
+                loss, p = sess.run([eval_loss, eval_probs], feed_dict={eval_input_ph:img})
+                for i in range(nrof_images):
+                    img[i, j, k, l] = np.random.choice(4, p=p[i, j, k, l])
+    return img
+
 
 
 def run_DS():
@@ -382,6 +402,10 @@ def run_DS():
             loss_ = sess.run([test_loss])
             test_loss_list += [loss_]
         print('test epoch: %d  loss: %.3f' % (epoch, np.mean(test_loss_list)))
+
+        np.random.seed(42)
+        images = sample(sess, eval_loss, eval_probs, eval_input_ph, 16)
+        display_image_grid(images, "logs/1_3/DS", "DS_samples")
 
 
 if __name__ == "__main__":

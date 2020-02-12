@@ -109,13 +109,17 @@ Looking at it with more fresh eyes, I do think the sample quality is actually qu
 between mine and DS.
 Will do some more sanity checks on masking to be sure.
 
+Did with lower LR (2.5e-4) and no better loss or samples (on mine factorised=True)
+
 Matched 1000 masks with random parameters between mine and DS masking functions.
+
+DS code as is (with their training loop) runs better. Similar loss but better samples.
+So going to look at adapting that into mine.
 
 - is there something else that needs seeding / repeatability
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 
-* NOW: do an automated test with random inputs to see if mine and DS masks match
 * THEN: add some more of my code to DS and run again
 * see other TODOs above and comments
 
