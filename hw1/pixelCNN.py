@@ -230,7 +230,7 @@ class PixelCNN:
         for batch in X.shuffle(bs * 2).batch(bs):
             n = len(batch)
             loss = self.eval(batch)
-            weighted_sum = loss * n
+            weighted_sum += loss * n
             n_data += n
         return weighted_sum / n_data
 
