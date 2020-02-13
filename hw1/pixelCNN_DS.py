@@ -31,56 +31,94 @@ def get_mask(kernel_size, channels_in, channels_out, input_channels, mask_type, 
     return mask
 
 
-def masked_conv2d(x, channels_out, kernel_size, input_channels, mask_type, factorized):
-    # Get dimensions of the input tensor
-    _, h, w, channels_in = x.shape.as_list()
-    # Create weight and bias variables
-    weights = tf.compat.v1.get_variable('weight', shape=(kernel_size, kernel_size, channels_in, channels_out), trainable=True)
-    bias = tf.compat.v1.get_variable('bias', shape=(h, w, channels_out), trainable=True)
-    # Create the mask
-    mask = get_mask(kernel_size, channels_in, channels_out, input_channels=input_channels, mask_type=mask_type,
-                    factorized=factorized)
-    # Apply convolution
-    y = tf.nn.conv2d(x, weights * mask, strides=[1, 1, 1, 1], padding='SAME') + bias
-    return y
+class MaskedConv2d(tf.keras.layers.Layer):
+    def __init__(self, channels_out, kernel_size, input_channels, mask_type, factorized):
+        super().__init__()
+        self.channels_out = channels_out
+        self.kernel_size = kernel_size
+        self.input_channels = input_channels
+        self.mask_type = mask_type
+        self._factorised = factorized
+
+    def build(self, input_shape):
+        # Get dimensions of the input tensor
+        _, h, w, channels_in = input_shape
+        # 1x1 relu filter, then 3x3 then 1x1
+        # Create weight and bias variables
+        shape = (self.kernel_size, self.kernel_size, channels_in, self.channels_out)
+        self._weights = tf.Variable(tf.initializers.glorot_uniform()(shape), name='weight', shape=shape,
+                              trainable=True)
+        shape_bias = (h, w, self.channels_out)
+        self._bias = tf.Variable(tf.initializers.glorot_uniform()(shape_bias), name='bias', shape=shape_bias, trainable=True)
+        # Create the mask
+        self._mask = get_mask(self.kernel_size, channels_in, self.channels_out, input_channels=self.input_channels, mask_type=self.mask_type,
+                        factorized=self._factorised)
+
+    def call(self, x):
+        # Apply convolution
+        y = tf.nn.conv2d(x, self._weights * self._mask, strides=[1, 1, 1, 1], padding='SAME') + self._bias
+        return y
 
 
-def res_block_with_bug(x, channels_out=128, input_channels=None, factorized=True):
-    y = tf.nn.relu(x)
-    # Downsample channels using 1x1 convolution
-    with tf.compat.v1.variable_scope('downsample'):
-        y = masked_conv2d(x, channels_out=channels_out, kernel_size=1, input_channels=input_channels, mask_type='B',
-                          factorized=factorized)
-    y = tf.nn.relu(x)
-    # Main convolution
-    with tf.compat.v1.variable_scope('conv'):
-        y = masked_conv2d(x, channels_out=channels_out, kernel_size=3, input_channels=input_channels, mask_type='B',
-                          factorized=factorized)
-    y = tf.nn.relu(x)
-    # Upsample channels by two using 1x1 convolution
-    with tf.compat.v1.variable_scope('upsample'):
-        y = masked_conv2d(x, channels_out=channels_out * 2, kernel_size=1, input_channels=input_channels, mask_type='B',
-                          factorized=factorized)
-    return y + x
+class ResBlock(tf.keras.layers.Layer):
+    def __init__(self, channels_out, input_channels, factorized=True):
+        super().__init__()
+        self.channels_out = channels_out
+        self.input_channels = input_channels
+        self.factorized = factorized
+
+    def build(self, input_shape):
+        self._layers = []
+        self._layers.append(tf.keras.layers.Activation("relu"))
+        # Downsample channels using 1x1 convolution
+        self._layers.append(MaskedConv2d(channels_out=self.channels_out, kernel_size=1, input_channels=self.input_channels, mask_type='B',
+                                         factorized=self.factorized))
+        self._layers.append(tf.keras.layers.Activation("relu"))
+        # Main convolution
+        self._layers.append(MaskedConv2d(channels_out=self.channels_out, kernel_size=3, input_channels=self.input_channels, mask_type='B',
+                                         factorized=self.factorized))
+        self._layers.append(tf.keras.layers.Activation("relu"))
+        # Upsample channels by two using 1x1 convolution
+        self._layers.append(MaskedConv2d(channels_out=self.channels_out * 2, kernel_size=1, input_channels=self.input_channels, mask_type='B',
+                                         factorized=self.factorized))
+
+    def call(self, x, **kwargs):
+        x_in = x
+        for layer in self._layers:
+            x = layer(x)
+        return x + x_in
 
 
-def res_block(x_in, channels_out=128, input_channels=None, factorized=True):
-    x = tf.nn.relu(x_in)
-    # Downsample channels using 1x1 convolution
-    with tf.compat.v1.variable_scope('downsample'):
-        x = masked_conv2d(x, channels_out=channels_out, kernel_size=1, input_channels=input_channels, mask_type='B',
-                          factorized=factorized)
-    x = tf.nn.relu(x)
-    # Main convolution
-    with tf.compat.v1.variable_scope('conv'):
-        x = masked_conv2d(x, channels_out=channels_out, kernel_size=3, input_channels=input_channels, mask_type='B',
-                          factorized=factorized)
-    x = tf.nn.relu(x)
-    # Upsample channels by two using 1x1 convolution
-    with tf.compat.v1.variable_scope('upsample'):
-        x = masked_conv2d(x, channels_out=channels_out * 2, kernel_size=1, input_channels=input_channels, mask_type='B',
-                          factorized=factorized)
-    return x + x_in
+class DSModel(tf.keras.Model):
+
+    def __init__(self, H, W, C, n_vals, factorised, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.n_vals = n_vals
+        self.H = H
+        self.W = W
+        self.N = n_vals
+        self.C = C
+        self.factorized = factorised
+
+    def build(self, input_shape, **kwargs):
+        self._layers = []
+        self._layers.append(MaskedConv2d(channels_out=128 * 2, kernel_size=7, input_channels=self.C, mask_type='A',
+                                          factorized=self.factorized))
+        for i in range(12):
+            self._layers.append(ResBlock(channels_out=128, input_channels=self.C, factorized=self.factorized))
+        self._layers.append(tf.keras.layers.Activation("relu"))
+        self._layers.append(MaskedConv2d(channels_out=128, kernel_size=1, input_channels=self.C, mask_type='B',
+                                          factorized=self.factorized))
+        self._layers.append(tf.keras.layers.Activation("relu"))
+        self._layers.append(MaskedConv2d(channels_out=self.N * self.C, kernel_size=1, input_channels=self.C, mask_type='B',
+                                          factorized=self.factorized))
+
+    def call(self, inputs, training=None, mask=None):
+        x = tf.cast(inputs, tf.float32)
+        for layer in self._layers:
+            x = layer(x)
+        x_rshp = tf.reshape(x, [-1, self.H, self.W, self.C, self.N])
+        return x_rshp
 
 
 class PixelCNNDS:
@@ -96,48 +134,31 @@ class PixelCNNDS:
         tf.compat.v1.enable_eager_execution()
         tf.compat.v1.random.set_random_seed(seed)
         self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
+        self.setup_model()
 
     def __str__(self):
         return "Name: {}\nFactorised: {}\nLearning rate: {}\n".format(self.name,
                                                                     self.factorized, self.learning_rate)
 
-    def fwd_model(self, X):
-        x = tf.cast(X, tf.float32)
-        with tf.compat.v1.variable_scope('input_conv'):
-            x = masked_conv2d(x, channels_out=128 * 2, kernel_size=7, input_channels=self.C, mask_type='A',
-                                             factorized=self.factorized)
-        for i in range(12):
-            with tf.compat.v1.variable_scope('res_block_%d' % i):
-                x = res_block(x, channels_out=128, input_channels=self.C, factorized=self.factorized)
-        with tf.compat.v1.variable_scope('output_conv_1'):
-            x = tf.nn.relu(x)
-            x = masked_conv2d(x, channels_out=128, kernel_size=1, input_channels=self.C, mask_type='B',
-                                             factorized=self.factorized)
-        with tf.compat.v1.variable_scope('output_conv_2'):
-            x = tf.nn.relu(x)
-            x = masked_conv2d(x, channels_out=self.N * self.C, kernel_size=1, input_channels=self.C, mask_type='B',
-                                      factorized=self.factorized)
-
-        x_rshp = tf.reshape(x, [-1, self.H, self.W, self.C, self.N])
-        return x_rshp
+    def setup_model(self):
+        self.model = DSModel(self.H, self.W, self.C, self.N, self.factorized)
 
     def forward_softmax(self, X):
-        x_rshp = self.fwd_model(X)
+        x_rshp = self.model(X)
         logits_64 = tf.cast(x_rshp, tf.float64)
         probs = tf.nn.softmax(logits_64)
         return probs
 
     def train_step(self, X):
-        print(tf.compat.v1.trainable_variables())
         with tf.GradientTape() as tape:
             logprob = self.eval(X)
-        grads = tape.gradient(logprob, tf.compat.v1.trainable_variables())
-        self.optimizer.apply_gradients(zip(grads, tf.compat.v1.trainable_variables()))
+        grads = tape.gradient(logprob, self.model.trainable_variables)
+        self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob.numpy()
 
     def eval(self, X):
         inp = tf.cast(X, tf.int32)
-        x_rshp = self.fwd_model(X)
+        x_rshp = self.model(X)
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=inp, logits=x_rshp)
         loss = tf.reduce_mean(losses) * np.log2(np.e)
         return loss
@@ -285,113 +306,6 @@ def tf_reshape_masks():
     mask_ds = get_mask(kernel_size, in_c, out_c, C, mask_letter, factorised)
     print("Mask DS in shape", mask_ds.shape)
     display_mask_reshape(mask_ds, kernel_size, N, C, i)
-
-## FOR RUNNING DS CODE AS WAS
-
-# Copied from high_dimensional_data.py else circular dependency
-def load_data(pct_val=0.15):
-    data = np.load("mnist-hw1.pkl", allow_pickle=True)
-    train_data = data["train"]
-    np.random.shuffle(train_data)
-    return train_data[int(len(train_data) * pct_val):], train_data[:int(len(train_data) * pct_val)], data["test"]
-
-
-def pixel_cnn(x, channels_out, factorized):
-    input_channels = x.shape.as_list()[3]
-    inp = tf.cast(x, tf.int32)
-    x = tf.cast(x, tf.float32)
-    with tf.compat.v1.variable_scope('input_conv'):
-        x = masked_conv2d(x, channels_out=128 * 2, kernel_size=7, input_channels=input_channels, mask_type='A',
-                          factorized=factorized)
-    for i in range(12):
-        with tf.compat.v1.variable_scope('res_block_%d' % i):
-            x = res_block(x, channels_out=128, input_channels=input_channels, factorized=factorized)
-    with tf.compat.v1.variable_scope('output_conv_1'):
-        x = tf.nn.relu(x)
-        x = masked_conv2d(x, channels_out=128, kernel_size=1, input_channels=input_channels, mask_type='B',
-                          factorized=factorized)
-    with tf.compat.v1.variable_scope('output_conv_2'):
-        x = tf.nn.relu(x)
-        x = masked_conv2d(x, channels_out=channels_out, kernel_size=1, input_channels=input_channels, mask_type='B',
-                          factorized=factorized)
-
-    x_rshp = tf.reshape(x, [-1, 28, 28, 3, 4])
-    losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=inp, logits=x_rshp)
-    loss = tf.reduce_mean(losses) * np.log2(np.e)
-    probs = tf.nn.softmax(x_rshp)
-    return loss, probs, x
-
-
-def create_dataset(x, batch_size):
-    dataset = tf.data.Dataset.from_tensor_slices(x)
-    dataset = dataset.repeat()   # Repeat the dataset indefinitely
-    dataset = dataset.shuffle(10000)   # Shuffle the data
-    dataset = dataset.batch(batch_size)  # Create batches of data
-    dataset = dataset.prefetch(batch_size)  # Prefetch data for faster consumption
-    iterator = tf.compat.v1.data.make_initializable_iterator(dataset)  # Create an iterator over the dataset
-    return iterator
-
-
-def sample(sess, eval_loss, eval_probs, eval_input_ph, nrof_images, noise=None):
-    img = np.zeros((nrof_images, 28, 28, 3), dtype=np.uint8)
-    img[:, 0, 0, 0] = np.random.choice(4, size=(nrof_images,))
-    for j in range(28):
-        for k in range(28):
-            for l in range(3):
-                loss, p = sess.run([eval_loss, eval_probs], feed_dict={eval_input_ph:img})
-                for i in range(nrof_images):
-                    img[i, j, k, l] = np.random.choice(4, p=p[i, j, k, l])
-    return img
-
-
-
-def run_DS():
-    train_data, _, test_data = load_data(pct_val=0)
-    nrof_epochs = 3  # TODO: was 5
-    batch_size = 128
-    factorized = True
-
-    with tf.Graph().as_default():
-
-        train_iterator = create_dataset(train_data, batch_size)
-        test_iterator = create_dataset(test_data, batch_size)
-        eval_input_ph = tf.compat.v1.placeholder(tf.float32, shape=(None, 28, 28, 3))
-
-        with tf.compat.v1.variable_scope('model', reuse=False):
-            train_loss, _, _ = pixel_cnn(train_iterator.get_next(), channels_out=3 * 4, factorized=factorized)
-        with tf.compat.v1.variable_scope('model', reuse=True):
-            test_loss, _, _ = pixel_cnn(test_iterator.get_next(), channels_out=3 * 4, factorized=factorized)
-            eval_loss, eval_probs, _ = pixel_cnn(eval_input_ph, channels_out=3 * 4, factorized=factorized)
-
-        optimizer = tf.optimizers.Adam(learning_rate=0.001)
-        tvars = tf.compat.v1.trainable_variables()
-        grads, _ = tf.clip_by_global_norm(tf.gradients(train_loss, tvars), 1.0)
-        train_op = optimizer.apply_gradients(zip(grads, tvars))
-
-        sess = tf.compat.v1.InteractiveSession()
-        sess.run(tf.compat.v1.global_variables_initializer())
-        sess.run(train_iterator.initializer)
-        sess.run(test_iterator.initializer)
-
-        nrof_train_batches = train_data.shape[0] // batch_size
-
-        train_loss_list = []
-        for epoch in range(1, nrof_epochs + 1):
-            for i in range(nrof_train_batches):
-                _, loss_ = sess.run([train_op, train_loss])
-                train_loss_list += [loss_]
-                if i % 25 == 0:
-                    print('train epoch: %4d  batch: %4d  loss: %7.3f' % (epoch, i, loss_))
-
-        test_loss_list = []
-        for i in range(test_data.shape[0] // batch_size):
-            loss_ = sess.run([test_loss])
-            test_loss_list += [loss_]
-        print('test epoch: %d  loss: %.3f' % (epoch, np.mean(test_loss_list)))
-
-        np.random.seed(42)
-        images = sample(sess, eval_loss, eval_probs, eval_input_ph, 16)
-        display_image_grid(images, "logs/1_3/DS", "DS_samples")
 
 
 if __name__ == "__main__":
