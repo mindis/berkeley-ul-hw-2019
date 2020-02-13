@@ -41,6 +41,13 @@ def train_model(X_train, X_test, model, training_logger, n_epochs=3, bs=64, log_
     :param bs: batch size
     :param log_every: # batches to log at multiples of
     """
+    # pre-fetch for performance
+    X_train.prefetch(bs)
+    X_test.prefetch(bs)
+    # for DS
+    X_train = tf.compat.v1.data.make_initializable_iterator(X_train)  # Create an iterator over the dataset
+    X_test = tf.compat.v1.data.make_initializable_iterator(X_test)  # Create an iterator over the dataset
+
     train_iter = X_train.shuffle(bs * 2).batch(bs)
     i = 0
     for epoch in range(n_epochs):
