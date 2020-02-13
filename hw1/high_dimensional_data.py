@@ -29,7 +29,7 @@ def set_seed(seed=100):
     tf.random.set_seed(seed)
 
 
-def train_model(X_train, X_test, model, training_logger, n_epochs=3, bs=64, log_every=50):
+def train_model(X_train, X_test, model, training_logger, n_epochs=5, bs=64, log_every=100):
     """
     Run training loop.
     Note sampling and validation take a while so we do them periodically.
