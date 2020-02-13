@@ -117,18 +117,22 @@ DS code as is (with their training loop) runs better. Similar loss but better sa
 So going to look at adapting that into mine.
 
 Improved the training loop.
-Doesn't initially appear to improve mine.
+Doesn't initially appear to improve mine. (factorised=False)
+Jumpy loss, and still not quite there on sample quality
 Could be LR? I think still a bug
 
 Worked DS code into the new training loop.
 Had to adapt it to work with TF2 eg. functions not sessions, so may have introduced some bugs.
+Seems to be working OK now.
+Report of DS on new training loop (factorised=False)
 
 - is there something else that needs seeding / repeatability
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 
 
-* NOW: Try DS on new training loop - Need to adapt it to work with tf dataset
-* THEN: add some more of my code to DS and run again
+* NOW: Train and report DS on new training loop
+* Try full run on 5e-4 LR mine?
+* THEN: further compare and debug: add some more of my code to DS and run again
 * see other TODOs above and comments
 

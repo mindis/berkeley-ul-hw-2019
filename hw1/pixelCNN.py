@@ -153,7 +153,7 @@ class PixelCNNModel(tf.keras.Model):
 
 # eval, eval_batch, train_step, forward, loss, sample
 class PixelCNN:
-    def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=10e-5, factorised=False):
+    def __init__(self, H=28, W=28, C=3, n_vals=4, learning_rate=5e-4, factorised=False):
         """
         H, W, C image shape: height, width, channels
         n_vals the number of values each channel can take on
