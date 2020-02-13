@@ -124,7 +124,7 @@ Improved the training loop.
 Doesn't initially appear to improve mine.
 Could be LR? I think still a bug
 
-* NOW: Try DS on new training loop
+* NOW: Try DS on new training loop - Need to adapt it to work with tf dataset
 * THEN: add some more of my code to DS and run again
 * see other TODOs above and comments
 
