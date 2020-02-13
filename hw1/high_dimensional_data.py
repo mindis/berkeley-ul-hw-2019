@@ -44,10 +44,7 @@ def train_model(X_train, X_test, model, training_logger, n_epochs=3, bs=64, log_
     # pre-fetch for performance
     X_train.prefetch(bs)
     X_test.prefetch(bs)
-    # for DS
-    X_train = tf.compat.v1.data.make_initializable_iterator(X_train)  # Create an iterator over the dataset
-    X_test = tf.compat.v1.data.make_initializable_iterator(X_test)  # Create an iterator over the dataset
-
+    # setup for training
     train_iter = X_train.shuffle(bs * 2).batch(bs)
     i = 0
     for epoch in range(n_epochs):
@@ -64,12 +61,12 @@ def train_model(X_train, X_test, model, training_logger, n_epochs=3, bs=64, log_
         print("Finished epoch {}, sampling.".format(epoch))
         sample_and_display(model, 4, training_logger.log_dir, label=" " + str(i))
     # add final val / test logprob if didn't before
-    print("Finished training.")
+    print("\nFinished training.")
     if i % log_every != 0:
-        print("Final val metrics:")
+        print("Final metrics:")
         val_logprob = model.eval_dataset(X_test)
         training_logger.add_val(i, val_logprob)
-
+        print()
 
 def eval_model(model, training_logger):
     print("Plotting and sampling.")

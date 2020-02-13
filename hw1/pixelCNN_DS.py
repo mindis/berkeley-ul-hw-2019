@@ -93,51 +93,54 @@ class PixelCNNDS:
         self.factorized = factorized
         self.learning_rate = learning_rate
         self.optimiser = tf.compat.v1.train.AdamOptimizer(learning_rate)
-        tf.compat.v1.disable_eager_execution()
-        tf.compat.v1.disable_v2_behavior()
-        tf.compat.v1.reset_default_graph()
         # set seed
         tf.compat.v1.random.set_random_seed(seed)
         self.sess = tf.compat.v1.Session()
-        self.setup_model()
-        self.sess.run(tf.compat.v1.global_variables_initializer())
+        self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
 
     def __str__(self):
         return "Name: {}\nFactorised: {}\nLearning rate: {}\n".format(self.name,
                                                                     self.factorized, self.learning_rate)
 
-    def setup_model(self):
-        self.x_ph = tf.compat.v1.placeholder(tf.float32, shape=(None, self.H, self.W, self.C))
-        input_channels = self.x_ph.shape.as_list()[3]
-        inp = tf.cast(self.x_ph, tf.int32)
-        x = tf.cast(self.x_ph, tf.float32)
+    def fwd_model(self, X):
+        x = tf.cast(X, tf.float32)
         with tf.compat.v1.variable_scope('input_conv'):
-            x = masked_conv2d(x, channels_out=128 * 2, kernel_size=7, input_channels=input_channels, mask_type='A',
+            x = masked_conv2d(x, channels_out=128 * 2, kernel_size=7, input_channels=self.C, mask_type='A',
                                              factorized=self.factorized)
         for i in range(12):
             with tf.compat.v1.variable_scope('res_block_%d' % i):
-                x = res_block(x, channels_out=128, input_channels=input_channels, factorized=self.factorized)
+                x = res_block(x, channels_out=128, input_channels=self.C, factorized=self.factorized)
         with tf.compat.v1.variable_scope('output_conv_1'):
             x = tf.nn.relu(x)
-            x = masked_conv2d(x, channels_out=128, kernel_size=1, input_channels=input_channels, mask_type='B',
+            x = masked_conv2d(x, channels_out=128, kernel_size=1, input_channels=self.C, mask_type='B',
                                              factorized=self.factorized)
         with tf.compat.v1.variable_scope('output_conv_2'):
             x = tf.nn.relu(x)
-            x = masked_conv2d(x, channels_out=self.N * self.C, kernel_size=1, input_channels=input_channels, mask_type='B',
+            x = masked_conv2d(x, channels_out=self.N * self.C, kernel_size=1, input_channels=self.C, mask_type='B',
                                       factorized=self.factorized)
 
         x_rshp = tf.reshape(x, [-1, self.H, self.W, self.C, self.N])
-        losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=inp, logits=x_rshp)
-        self.loss = tf.reduce_mean(losses) * np.log2(np.e)
-        self.probs = tf.nn.softmax(x_rshp)
-        self.update_op = self.optimiser.minimize(self.loss, var_list=tf.compat.v1.trainable_variables())
+        return x_rshp
+
+    def forward_softmax(self, X):
+        x_rshp = self.fwd_model(X)
+        logits_64 = tf.cast(x_rshp, tf.float64)
+        probs = tf.nn.softmax(logits_64)
+        return probs
 
     def train_step(self, X):
-        loss, _ = self.sess.run([self.loss, self.update_op], feed_dict={self.x_ph: X})
-        return loss
+        with tf.GradientTape() as tape:
+            logprob = self.eval(X)
+        grads = tape.gradient(logprob, tf.compat.v1.trainable_variables())
+        self.optimizer.apply_gradients(zip(grads, tf.compat.v1.trainable_variables()))
+        return logprob.numpy()
 
     def eval(self, X):
-        return self.sess.run(self.loss, feed_dict={self.x_ph: X})
+        inp = tf.cast(X, tf.int32)
+        x_rshp = self.fwd_model(X)
+        losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=inp, logits=x_rshp)
+        loss = tf.reduce_mean(losses) * np.log2(np.e)
+        return loss
 
     def eval_dataset(self, X, bs=64):
         """
@@ -172,9 +175,6 @@ class PixelCNNDS:
                     for i in range(n):
                         images[i, h, w, c] = np.random.choice(self.N, p=model_preds[i, h, w, c])
         return images
-
-    def forward_softmax(self, X):
-        return self.sess.run(self.probs, feed_dict={self.x_ph: X})
 
 
 def compare_sampling(n=10, m=10000, seed=123):
@@ -346,7 +346,7 @@ def sample(sess, eval_loss, eval_probs, eval_input_ph, nrof_images, noise=None):
 
 
 def run_DS():
-    train_data, _, test_data  = load_data(pct_val=0)
+    train_data, _, test_data = load_data(pct_val=0)
     nrof_epochs = 3  # TODO: was 5
     batch_size = 128
     factorized = True

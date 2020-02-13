@@ -116,13 +116,17 @@ Matched 1000 masks with random parameters between mine and DS masking functions.
 DS code as is (with their training loop) runs better. Similar loss but better samples.
 So going to look at adapting that into mine.
 
+Improved the training loop.
+Doesn't initially appear to improve mine.
+Could be LR? I think still a bug
+
+Worked DS code into the new training loop.
+Had to adapt it to work with TF2 eg. functions not sessions, so may have introduced some bugs.
+
 - is there something else that needs seeding / repeatability
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 
-Improved the training loop.
-Doesn't initially appear to improve mine.
-Could be LR? I think still a bug
 
 * NOW: Try DS on new training loop - Need to adapt it to work with tf dataset
 * THEN: add some more of my code to DS and run again
