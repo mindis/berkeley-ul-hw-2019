@@ -92,10 +92,9 @@ class PixelCNNDS:
         self.N = N
         self.factorized = factorized
         self.learning_rate = learning_rate
-        self.optimiser = tf.compat.v1.train.AdamOptimizer(learning_rate)
         # set seed
+        tf.compat.v1.enable_eager_execution()
         tf.compat.v1.random.set_random_seed(seed)
-        self.sess = tf.compat.v1.Session()
         self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
 
     def __str__(self):
@@ -129,6 +128,7 @@ class PixelCNNDS:
         return probs
 
     def train_step(self, X):
+        print(tf.compat.v1.trainable_variables())
         with tf.GradientTape() as tape:
             logprob = self.eval(X)
         grads = tape.gradient(logprob, tf.compat.v1.trainable_variables())
