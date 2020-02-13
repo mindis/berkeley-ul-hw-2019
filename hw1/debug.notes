@@ -120,8 +120,11 @@ So going to look at adapting that into mine.
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 
-* Adding DS training loop
-    - Test debug, few and main
+Improved the training loop.
+Doesn't initially appear to improve mine.
+Could be LR? I think still a bug
+
+* NOW: Try DS on new training loop
 * THEN: add some more of my code to DS and run again
 * see other TODOs above and comments
 

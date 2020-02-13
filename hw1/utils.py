@@ -75,9 +75,8 @@ class TrainingLogger:
     def add(self, i, train):
         """
         i - iteration
-        train, val - set log probabilities in bits per dimension
+        adds train metric to list of logs
         """
-        print("{} {:>8}:\t Train: {:<6.3f}".format(time.strftime("%d %b %Y %H:%M:%S"), i, train))
         self._i_train.append(i)
         self._train.append(train)
 
@@ -85,8 +84,11 @@ class TrainingLogger:
         """
         i - iteration
         val - set log probabilities in bits per dimension
+        Adds the validation set metrics to list and prints the latest train and val logs
         """
-        print("{} {:>8}:\t Val: {:<6.3f}".format(time.strftime("%d %b %Y %H:%M:%S"), i, val))
+        print("{} {:>8}:\t Train: : {:<6.3f} Val: {:<6.3f}".format(time.strftime("%d %b %Y %H:%M:%S"), i,
+                                                                   self._train[-1],
+                                                                   val))
         self._i_val.append(i)
         self._val.append(val)
 

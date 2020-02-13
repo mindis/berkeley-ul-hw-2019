@@ -29,7 +29,7 @@ def set_seed(seed=100):
     tf.random.set_seed(seed)
 
 
-def train_model(X_train, X_test, model, training_logger, n_epochs=3, bs=64, log_every=10):
+def train_model(X_train, X_test, model, training_logger, n_epochs=3, bs=64, log_every=50):
     """
     Run training loop.
     Note sampling and validation take a while so we do them periodically.
@@ -48,7 +48,8 @@ def train_model(X_train, X_test, model, training_logger, n_epochs=3, bs=64, log_
             i += 1
             logprob = model.train_step(batch)
             training_logger.add(i, logprob)
-            if i % log_every == 0:
+            # log at start then every log_every steps
+            if i % log_every == 0 or i == 1:
                 # get validation performance and add to logs
                 val_logprob = model.eval_dataset(X_test)
                 training_logger.add_val(i, val_logprob)
