@@ -137,7 +137,8 @@ Sampling: ... TODO ...
 - My samples seem worse though loss similar - why?
 
 * Try adapted model back with original training loop
-* Try full run on 5e-4 LR mine? Try on DS on 10e-4 my train loop (bc this is what DS code used!)?
+* Try on DS on 10e-4 my train loop (bc this is what DS code used!)
+* Try full run on 5e-4 LR mine?
 * Further compare and debug: add some more of my code to DS and run again
 * see other TODOs above and comments
 
