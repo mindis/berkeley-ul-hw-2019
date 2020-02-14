@@ -124,15 +124,20 @@ Could be LR? I think still a bug
 Worked DS code into the new training loop.
 Had to adapt it to work with TF2 eg. functions not sessions, so may have introduced some bugs.
 Seems to be working OK now.
-Report of DS on new training loop (factorised=False)
+Report of DS on new training loop (factorised=False):
+Not great, loss initially get better but then gets worse again and samples v poor
+Noticed that original DS training loop uses 10e-4 I was using 10e-3 so try again with that LR
+
+Trying DS training loop with adapted TF 2 DS code
+Loss got v low 0.065
+Sampling: ... TODO ...
 
 - is there something else that needs seeding / repeatability
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 
-
-* NOW: Train and report DS on new training loop
-* Try full run on 5e-4 LR mine?
-* THEN: further compare and debug: add some more of my code to DS and run again
+* Try adapted model back with original training loop
+* Try full run on 5e-4 LR mine? Try on DS on 10e-4 my train loop (bc this is what DS code used!)?
+* Further compare and debug: add some more of my code to DS and run again
 * see other TODOs above and comments
 
