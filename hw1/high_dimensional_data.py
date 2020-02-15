@@ -41,11 +41,11 @@ def train_model(X_train, X_test, model, training_logger, n_epochs=5, bs=64, log_
     :param bs: batch size
     :param log_every: # batches to log at multiples of
     """
-    # pre-fetch for performance
-    X_train.prefetch(bs)
-    X_test.prefetch(bs)
     # setup for training
     train_iter = X_train.shuffle(bs * 2).batch(bs)
+    # pre-fetch for performance
+    train_iter.prefetch(bs)
+    X_test.prefetch(bs)
     i = 0
     for epoch in range(n_epochs):
         for batch in train_iter:

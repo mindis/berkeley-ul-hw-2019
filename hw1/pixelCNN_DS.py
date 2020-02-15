@@ -138,8 +138,6 @@ class PixelCNNDS:
         self.factorized = factorized
         self.learning_rate = learning_rate
         # set seed
-        tf.compat.v1.enable_eager_execution()
-        tf.compat.v1.random.set_random_seed(seed)
         self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
         self.setup_model()
 
@@ -150,6 +148,7 @@ class PixelCNNDS:
     def setup_model(self):
         self.model = DSModel(self.H, self.W, self.C, self.N, self.factorized)
 
+    @tf.function
     def forward_softmax(self, X):
         x_rshp = self.model(X)
         logits_64 = tf.cast(x_rshp, tf.float64)
@@ -160,9 +159,11 @@ class PixelCNNDS:
         with tf.GradientTape() as tape:
             logprob = self.eval(X)
         grads = tape.gradient(logprob, self.model.trainable_variables)
+        grads, _ = tf.clip_by_global_norm(grads, 1.0)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob.numpy()
 
+    @tf.function
     def eval(self, X):
         return self.model.loss(X)
 
@@ -314,80 +315,54 @@ def tf_reshape_masks():
 ### FOR RUN DS AS IS
 
 # Copied from high_dimensional_data.py else circular dependency
-def load_data(pct_val=0.15):
+def load_data():
+    """
+    Not a perfect split as should have some validation data.
+    Uses test data as validation here since our interest is generative.
+    :return: train data, test data as tf.data.Datasets
+    """
     data = np.load("mnist-hw1.pkl", allow_pickle=True)
-    train_data = data["train"]
-    np.random.shuffle(train_data)
-    return train_data[int(len(train_data) * pct_val):], train_data[:int(len(train_data) * pct_val)], data["test"]
+    train_data = tf.data.Dataset.from_tensor_slices(data["train"])
+    test_data = tf.data.Dataset.from_tensor_slices(data["test"])
+    return train_data, test_data
 
 
-def create_dataset(x, batch_size):
-    dataset = tf.data.Dataset.from_tensor_slices(x)
-    dataset = dataset.repeat()   # Repeat the dataset indefinitely
+def create_dataset(dataset, batch_size):
     dataset = dataset.shuffle(10000)   # Shuffle the data
     dataset = dataset.batch(batch_size)  # Create batches of data
-    dataset = dataset.prefetch(batch_size)  # Prefetch data for faster consumption
-    iterator = tf.compat.v1.data.make_initializable_iterator(dataset)  # Create an iterator over the dataset
-    return iterator
+    return dataset
 
 
-def sample(sess, model, nrof_images, noise=None):
-    img = np.zeros((nrof_images, 28, 28, 3), dtype=np.uint8)
-    img[:, 0, 0, 0] = np.random.choice(4, size=(nrof_images,))
-    for j in range(28):
-        for k in range(28):
-            for l in range(3):
-                p = tf.nn.softmax(tf.cast(model(img), tf.float64)).eval(sess)
-                for i in range(nrof_images):
-                    img[i, j, k, l] = np.random.choice(4, p=p[i, j, k, l])
-    return img
+def run_DS(seed=123):
+    # seed
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
 
-
-def run_DS():
-    train_data, _, test_data = load_data(pct_val=0)
-    nrof_epochs = 3  # TODO: was 5
-    batch_size = 128
+    train_data, test_data = load_data()
+    nrof_epochs = 2  # TODO: was 5
+    batch_size = 64
     factorized = False
 
-    pixel_cnn_model = DSModel(28, 28, 3, 4, factorised=factorized)
+    pixel_cnn_model = PixelCNNDS(28, 28, 3, 4, factorized=factorized)
 
-    with tf.Graph().as_default():
+    train_iterator = create_dataset(train_data, batch_size)
 
-        train_iterator = create_dataset(train_data, batch_size)
-        test_iterator = create_dataset(test_data, batch_size)
+    train_loss_list = []
+    for epoch in range(1, nrof_epochs + 1):
+        for i, batch in enumerate(train_iterator):
+            loss_ = pixel_cnn_model.train_step(batch)
+            train_loss_list += [loss_]
+            if i % 25 == 0:
+                print('train epoch: %4d  batch: %4d  loss: %7.3f' % (epoch, i, loss_))
 
-        train_loss = pixel_cnn_model.loss(train_iterator.get_next())
-        test_loss = pixel_cnn_model.loss(test_iterator.get_next())
+    test_loss_list = []
+    loss_ = pixel_cnn_model.eval_dataset(test_data)
+    test_loss_list += [loss_]
+    print('test epoch: %d  loss: %.3f' % (epoch, np.mean(test_loss_list)))
 
-        optimizer = tf.optimizers.Adam(learning_rate=10e-4)
-        tvars = tf.compat.v1.trainable_variables()
-        grads, _ = tf.clip_by_global_norm(tf.gradients(train_loss, tvars), 1.0)
-        train_op = optimizer.apply_gradients(zip(grads, tvars))
-
-        sess = tf.compat.v1.InteractiveSession()
-        sess.run(tf.compat.v1.global_variables_initializer())
-        sess.run(train_iterator.initializer)
-        sess.run(test_iterator.initializer)
-
-        nrof_train_batches = train_data.shape[0] // batch_size
-
-        train_loss_list = []
-        for epoch in range(1, nrof_epochs + 1):
-            for i in range(nrof_train_batches):
-                _, loss_ = sess.run([train_op, train_loss])
-                train_loss_list += [loss_]
-                if i % 25 == 0:
-                    print('train epoch: %4d  batch: %4d  loss: %7.3f' % (epoch, i, loss_))
-
-        test_loss_list = []
-        for i in range(test_data.shape[0] // batch_size):
-            loss_ = sess.run([test_loss])
-            test_loss_list += [loss_]
-        print('test epoch: %d  loss: %.3f' % (epoch, np.mean(test_loss_list)))
-
-        np.random.seed(42)
-        images = sample(sess, pixel_cnn_model, 16)
-        display_image_grid(images, "logs/1_3/DS", "DS_samples")
+    np.random.seed(42)
+    images = pixel_cnn_model.get_samples(16)
+    display_image_grid(images, "logs/1_3/DS", "DS_samples")
 
 
 if __name__ == "__main__":

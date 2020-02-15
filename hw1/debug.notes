@@ -129,16 +129,18 @@ Not great, loss initially get better but then gets worse again and samples v poo
 Noticed that original DS training loop uses 10e-4 I was using 10e-3 so try again with that LR
 
 Trying DS training loop with adapted TF 2 DS code
-Loss got v low 0.065
-Sampling: ... TODO ...
+Loss got v low 0.075
+Sample quality really good.
+This is the same code as DS before just different training loop -> I think your issue could be
+optimisation not a bug!?
 
 - is there something else that needs seeding / repeatability
 - my model prefers lower LR - why??
 - My samples seem worse though loss similar - why?
 
-* Try adapted model back with original training loop
-* Try on DS on 10e-4 my train loop (bc this is what DS code used!)
-* Try full run on 5e-4 LR mine?
+* Try on DS on 10e-4 my train loop to try match DS train loop performance
+* Try full run on 5e-4 LR mine w/ grad clip?
+* Try mine on DS train loop?
 * Further compare and debug: add some more of my code to DS and run again
 * see other TODOs above and comments
 
