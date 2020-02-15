@@ -129,7 +129,7 @@ class DSModel(tf.keras.Model):
 
 
 class PixelCNNDS:
-    def __init__(self, H=28, W=28, C=3, N=4, factorized=False, learning_rate=10e-3, seed=1234):
+    def __init__(self, H=28, W=28, C=3, N=4, factorized=False, learning_rate=10e-4):
         self.name = "PixelCNN-DS-DEBUG"
         self.H = H
         self.W = W
@@ -137,7 +137,6 @@ class PixelCNNDS:
         self.N = N
         self.factorized = factorized
         self.learning_rate = learning_rate
-        # set seed
         self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
         self.setup_model()
 
