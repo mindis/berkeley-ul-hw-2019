@@ -156,7 +156,7 @@ PixelCNN-MADE factorised=False loss only to 0.33 and samples poor
 
 - Should last layer be ordered unit numbers? Feel like the output softmax is split by reshape but this might
 not align with the unit numbers? Also might be a similar input problem?
-- One hot?
+- One hot, with each value of each channel, pixel etc as possible bool var for MADE
 - Variable ordering in input to MADE (output from PixelCNN)??
 - Should it be factorised or not for the PixelCNN in PixelCNN-MADE given separation of units in MADE
 
