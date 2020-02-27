@@ -93,14 +93,14 @@ class MADEModel(tf.keras.Model):
 
 
 class MADE:
-    def __init__(self, name="MADE", N=200, D=2, one_hot=True, n_hidden_units=64, learning_rate=0.002):
+    def __init__(self, name="MADE", N=200, D=2, one_hot=True, n_hidden_units=64, learning_rate=10e-4):
         self.name = name
         self.N = N
         self.D = D
-        self.setup_model()
         self.optimizer = tf.optimizers.Adam(learning_rate)
         self.one_hot = one_hot
         self.n_hidden_units = n_hidden_units
+        self.setup_model()
 
     def setup_model(self):
         """
@@ -162,13 +162,28 @@ class MADE:
             logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-        return logprob
+        return logprob.numpy()
 
     def eval(self, X):
         X_float = tf.cast(X, tf.float32)
         logits = self.forward_logits(X_float)
         logprob = self.loss(logits, X)
         return logprob
+
+    def eval_dataset(self, X, bs=128):
+        """
+        :param X: a tf.data.Dataset
+        computes eval on a tf dataset
+        returns float of mean loss on dataset
+        """
+        n_data = 0
+        weighted_sum = 0
+        for batch in X.shuffle(bs * 2).batch(bs):
+            n = len(batch)
+            loss = self.eval(batch).numpy()
+            weighted_sum += loss * n
+            n_data += n
+        return weighted_sum / n_data
 
     def get_probs(self):
         """

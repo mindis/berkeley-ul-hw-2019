@@ -3,7 +3,7 @@ import tensorflow as tf
 from pixelCNN import PixelCNN, display_image_grid, plot_image
 from pixelCNNMADE import PixelCNNMADE
 from pixelCNN_DS import PixelCNNDS
-from utils import TrainingLogger, BatchData
+from utils import TrainingLogger
 import argparse
 
 

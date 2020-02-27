@@ -2,6 +2,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import tensorflow_probability as tfp
+import tensorflow as tf
 from mlp_model import MLPModel
 from MADE import MADE
 from utils import TrainingLogger, BatchData
@@ -22,15 +23,16 @@ def plot_distribution_heatmap(data, title):
     plt.pause(0.001)
 
 
-def get_dataset(distribution, pct_train=0.65, pct_val=0.15):
+def get_dataset(distribution, pct_train=0.85):
     """
     Samples 100,000 points
-    Returns train (65%), val (15%), test (20%) samples as (N, 2) where N is % of 100,000 points
+    Returns train (85%), val (15%) samples as (N, 2) where N is % of 100,000 points
     """
-    n_samples = 100000
-    samples = get_2d_distribution_samples(distribution, n_samples)
-    return samples[:int(n_samples * pct_train)], samples[int(n_samples * pct_train):int(n_samples * (pct_train+pct_val))], \
-           samples[int(n_samples * (pct_train+pct_val)):]
+    with tf.device('/CPU:0'):
+        n_samples = 100000
+        samples = get_2d_distribution_samples(distribution, n_samples)
+    return samples[:int(n_samples * pct_train)], \
+           samples[int(n_samples * pct_train):]
 
 
 def get_2d_distribution_samples(distribution, n_samples, seed=100):
@@ -49,11 +51,12 @@ def plot_samples(samples, title):
 
 def train_model(X_train, X_val, model, training_logger, bs=10000):
     batch_data = BatchData(X_train, bs)
-    for i in range(1001):
+    for i in range(1501):
         logprob = model.train_step(batch_data.get_batch())
+        training_logger.add(i, logprob)
         if i % 100 == 0:
-            val_logprob = model.eval(X_val)
-            training_logger.add(i, logprob, val_logprob)
+            val_logprob = model.eval(X_val).numpy()
+            training_logger.add_val(i, val_logprob)
 
 
 def eval_model(model, training_logger):
@@ -63,7 +66,7 @@ def eval_model(model, training_logger):
 
 
 # TODO: adapt as high_dimensional_data.py to use X_test as X_val (so no X_val)
-def model_main(model, X_train, X_val, X_test):
+def model_main(model, X_train, X_val):
     training_logger = TrainingLogger(model.name, "1_2")
     train_model(X_train, X_val, model, training_logger)
     eval_model(model, training_logger)
@@ -79,7 +82,7 @@ if __name__ == "__main__":
     # get data
     distribution = load_distribution()
     # plot_distribution_heatmap(distribution, "True distribution")
-    X_train, X_val, X_test = get_dataset(distribution)
+    X_train, X_val = get_dataset(distribution)
     # plot_samples(X_train, "Data distribution samples")
 
     # mlp model
@@ -87,5 +90,6 @@ if __name__ == "__main__":
 
     # made model
 
-    model_main(MADE(), X_train, X_val, X_test)
+    model_main(MADE(), X_train, X_val)
+
 
