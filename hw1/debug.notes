@@ -143,10 +143,12 @@ Ran mine now with 10e-4 and grad clipping
 Got loss to 0.055 so similar to DS code
 Samples I'd say they're worse still, but comparable quality
 
+Ran mine with 10e-4 LR and factorised=True, loss not as low but samples v good
+I am happy to move onto PixelCNN-MADE and then onwards :)!
+
 - is there something else that needs seeding / repeatability
 - loss seems to spike at times - why?
 
-* Try mine again with factorised=True (and compare to DS as needed)
 * Note above two (-) points eg. in README
-* Debug with MADE
+* Debug MADE
 
