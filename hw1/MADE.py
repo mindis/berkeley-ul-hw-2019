@@ -82,7 +82,8 @@ class MADEModel(tf.keras.Model):
         # N * D outputs
         # -1 because the output layer is a strict inequality
         out_unit_numbers = sample_unit_numbers(self.N * self.D, 1, self.D) - 1
-        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers, activation=None)
+        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
+                                      activation=None)
 
     def call(self, inputs, training=None, mask=None):
         x = self.layer1(inputs)
