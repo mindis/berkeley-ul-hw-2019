@@ -53,3 +53,9 @@ I found the both to work on my debugging cases of a checkerboard or single digit
 dataset, it did not perform as well as the factorised case. I think perhaps this is because it is harder to 
 learn the full joint than additionally assuming factorised (independent) channels. The homework says to use 
 the factorised method so it is a safe assumption, but I am interested to learn more as to why this is the case.
+
+
+### TODO
+
+Not repeatable, I've set seeds but seems there's something else that
+needs seeding / repeatability perhaps coming from GPU use.

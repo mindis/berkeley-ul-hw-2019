@@ -48,7 +48,7 @@ class PixelCNNMADEModel(Model):
 # overwrite MADE
 class PixelCNNMADE(MADE):
     def __init__(self, H=28, W=28, C=3, N=4, learning_rate=10e-4, n_bottleneck=512, n_hidden_units=124,
-                 factorised=True):
+                 factorised=False):
         """
         H, W, C image shape: height, width, channels
         N is number of values per variable

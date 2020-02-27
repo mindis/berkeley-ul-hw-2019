@@ -148,12 +148,13 @@ Samples I'd say they're worse still, but comparable quality
 Ran mine with 10e-4 LR and factorised=True, loss not as low but samples v good
 I am happy to move onto PixelCNN-MADE and then onwards :)!
 
-Adapting PixelCNN MADE since updated code and PixelCNN
+Adapting PixelCNN-MADE since updated code and PixelCNN
 Made sure MADE still works!
 
-- is there something else that needs seeding / repeatability
-- loss seems to spike at times - why?
+PixelCNN-MADE factorised=True loss only to 0.31 and samples poor
+PixelCNN-MADE factorised=False loss only to 0.33 and samples poor
 
-* Note above two (-) points eg. in README
+-- Should it be factorised or not for the PixelCNN in PixelCNN-MADE given factorisation in MADE
+
 * Debug MADE
-
+* Sort README
