@@ -23,9 +23,9 @@ def get_pixelcnn_mask(kernel_size, in_channels, out_channels, isTypeA, n_channel
     isTypeA: bool, true if type A mask, otherwise type B mask used.
         Type A takes context and previous channels (but not its own channel)
         Type B takes context, prev channels and connected to own channel.
-    factorised: bool, if True then probabilities treated independently P(r)p(g)p(b)
+    factorised: bool, if True then we factorise over channels, ie. probs treated independently P(r)p(g)p(b)
         so mask type A all have centre off and B all have it on.
-        Otherwise the full joint as in the paper are used p(r)p(g|r)p(b|r,g)
+        Otherwise the full joint probs are used p(r)p(g|r)p(b|r,g) which requires conditioning on previous channels
         and A and B masks are different for each channel to allow this.
 
     Returns masks of shape (kernel_size, kernel_size, # in channels, # out channels)
@@ -179,7 +179,6 @@ class PixelCNN:
         """
         probs are outputs of forward model, a probability for each image (N, )
         Returns mean *negative* log prob (likelihood) over x (a scalar)
-        Autoregressive over space, ie. decomposes into a product over pixels conditioned on previous ones in ordering
         Since single dimension predicted each forward pass, logprob (base 2) is in bits per dimension
         """
         labels = tf.cast(labels, tf.int32)
@@ -258,11 +257,19 @@ class PixelCNN:
         images[:, 0, 0, 0] = np.random.choice(self.n_vals, n)
         for h in range(self.H):
             for w in range(self.W):
-                for c in range(self.C):
+                # if factorised over channels then only need one fwd pass
+                if self.factorised:
                     model_preds = self.forward_softmax(images)
                     # categorical over pixel values
-                    pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
-                    images[:, h, w, c] = pixel_dist.sample(1, seed=seed)
+                    pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w])
+                    images[:, h, w] = pixel_dist.sample(1, seed=seed)
+                # o/w we need to condition on prev channels
+                else:
+                    for c in range(self.C):
+                        model_preds = self.forward_softmax(images)
+                        # categorical over pixel values
+                        pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
+                        images[:, h, w, c] = pixel_dist.sample(1, seed=seed)
         return images
 
 

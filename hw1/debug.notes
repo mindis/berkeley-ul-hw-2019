@@ -145,20 +145,33 @@ Samples I'd say they're worse still, but comparable quality
 
 27th Feb
 
-Ran mine with 10e-4 LR and factorised=True, loss not as low but samples v good
+Ran mine with 10e-4 LR and factorised=True, loss to 0.12, not as low as factorised=False but samples v good
 I am happy to move onto PixelCNN-MADE and then onwards :)!
 
+PixelCNN-MADE
 Adapting PixelCNN-MADE since updated code and PixelCNN
 Made sure MADE still works!
 
 PixelCNN-MADE factorised=True loss only to 0.31 and samples poor
 PixelCNN-MADE factorised=False loss only to 0.33 and samples poor
 
-- Should last layer be ordered unit numbers? Feel like the output softmax is split by reshape but this might
-not align with the unit numbers? Also might be a similar input problem?
-- One hot, with each value of each channel, pixel etc as possible bool var for MADE
-- Variable ordering in input to MADE (output from PixelCNN)??
-- Should it be factorised or not for the PixelCNN in PixelCNN-MADE given separation of units in MADE
+PixelCNN: Note from HW that should be AR over space but factorised over channels
+This doesn't affect loss since the masking enforces the conditioning there.
+In sampling factorised we need only 1 forward pass we then sample all 3 channels as they are independent
+I have implemented this
+PixelCNN-MADE should only use unfactorised since we want MADE to capture dependencies between channels
 
-* Debug MADE
+- Unit ordering
+Inputs and outputs need to be ordered such that it matches with the PixelCNN conditioning. O/w the order
+of the variables conflicts for sampling
+For D variables (H x W x C) taking N values
+For inputs and outputs:
+We need the unit numbers to be 1 for the first N then 2 for the next N ... until D for the last N
+np.repeat(np.arange(H*W*C), N).reshape([H,W,C,N]) seems to give right ordering
+
+
+* Test Factorised sampling PixelCNN
+* Implement ordered unit numbers and test this with MADE q2
+* PixelCNN-MADE one hot over each value of channel, pixel etc as possible bool var for MADE
 * Sort README
+    About factorised flag on pixelCNN

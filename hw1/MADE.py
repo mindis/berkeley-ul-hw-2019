@@ -16,6 +16,17 @@ def sample_unit_numbers(n_units, min_n, n_random_vars, seed=100):
     return np.random.randint(min_n, n_random_vars+1, size=n_units)
 
 
+def ordered_unit_number(D, N):
+    """
+    :param D: the number of RVs
+    :param N: number of values each RV can take (because we one-hot it so each value of each RV is a single RV)
+    Primarily for input and output layers
+    Gives ordered units so we can sample by conditioning sequentially. Ie. the first N values will be unit number
+    1 then the next N will be 2, ... the last N will be unit number D
+    """
+    return np.repeat(np.arange(1, D+1), N)
+
+
 def get_mask_made(prev_unit_numbers, unit_numbers):
     """
     Gets the matrix to multiply with the weights to mask connections for MADE.
@@ -75,13 +86,14 @@ class MADEModel(tf.keras.Model):
         self.n_hidden_units = n_hidden_units
 
     def build(self, input_shape, **kwargs):
-        # get random initial unit numbers for mask, from 1 to D
-        in_unit_numbers = sample_unit_numbers(input_shape[1], 1, self.D)
+        # get ordered unit numbers for inputs
+        in_unit_numbers = ordered_unit_number(self.D, self.N)
         self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D)
         self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D)
         # N * D outputs
+        # Ordered unit numbers for output
         # -1 because the output layer is a strict inequality
-        out_unit_numbers = sample_unit_numbers(self.N * self.D, 1, self.D) - 1
+        out_unit_numbers = ordered_unit_number(self.D, self.N) - 1
         self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
                                       activation=None)
 
