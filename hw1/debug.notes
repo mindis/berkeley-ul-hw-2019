@@ -143,7 +143,7 @@ Ran mine now with 10e-4 and grad clipping
 Got loss to 0.055 so similar to DS code
 Samples I'd say they're worse still, but comparable quality
 
-27th Feb
+27th, 28th Feb
 
 Ran mine with 10e-4 LR and factorised=True, loss to 0.12, not as low as factorised=False but samples v good
 I am happy to move onto PixelCNN-MADE and then onwards :)!
@@ -171,7 +171,12 @@ np.repeat(np.arange(H*W*C), N).reshape([H,W,C,N]) seems to give right ordering
 
 Shouldn't need to one-hot because the loss in MADE uses sparse Xent.
 
+Ordered MADE works on q2, the final distribution is empirically good
+But the loss doesn't get as low as before
+Think this is OK since the other one train loss was much lower than validation loss so was overfitting I think
+
+Removed DS code!
+
 * Test Factorised sampling PixelCNN
-* Implement ordered unit numbers and test this with MADE q2
 * Sort README
     About factorised flag on pixelCNN

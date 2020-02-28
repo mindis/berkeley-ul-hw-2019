@@ -106,7 +106,7 @@ class MADEModel(tf.keras.Model):
 
 
 class MADE:
-    def __init__(self, name="MADE", N=200, D=2, one_hot=True, n_hidden_units=64, learning_rate=10e-4):
+    def __init__(self, name="MADE", N=200, D=2, one_hot=True, n_hidden_units=64, learning_rate=10e-3):
         self.name = name
         self.N = N
         self.D = D
