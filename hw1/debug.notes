@@ -169,9 +169,9 @@ For inputs and outputs:
 We need the unit numbers to be 1 for the first N then 2 for the next N ... until D for the last N
 np.repeat(np.arange(H*W*C), N).reshape([H,W,C,N]) seems to give right ordering
 
+Shouldn't need to one-hot because the loss in MADE uses sparse Xent.
 
 * Test Factorised sampling PixelCNN
 * Implement ordered unit numbers and test this with MADE q2
-* PixelCNN-MADE one hot over each value of channel, pixel etc as possible bool var for MADE
 * Sort README
     About factorised flag on pixelCNN

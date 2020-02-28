@@ -47,8 +47,7 @@ class PixelCNNMADEModel(Model):
 
 # overwrite MADE
 class PixelCNNMADE(MADE):
-    def __init__(self, H=28, W=28, C=3, N=4, learning_rate=10e-4, n_bottleneck=512, n_hidden_units=124,
-                 factorised=False):
+    def __init__(self, H=28, W=28, C=3, N=4, learning_rate=10e-4, n_bottleneck=512, n_hidden_units=124):
         """
         H, W, C image shape: height, width, channels
         N is number of values per variable
@@ -59,18 +58,18 @@ class PixelCNNMADE(MADE):
         self.C = C
         self.n_bottleneck = n_bottleneck
         self.n_hidden_units = n_hidden_units
-        self.factorised = factorised
         # calls setup model and init optimiser
-        super().__init__(name, N, self.H * self.W * self.C, n_hidden_units=124, one_hot=False, learning_rate=learning_rate, )
+        # D (# vars) is H x W x C
+        super().__init__(name, N, self.H * self.W * self.C, n_hidden_units=124, one_hot=False,
+                         learning_rate=learning_rate)
 
     def setup_model(self):
         """
         overwrite to pixelcnn-made model
         """
-        # TODO: make sure pixel cnn uses factorised? but full joint should be ok too?
-        # TODO: larger n hidden units in MADE?
+        # we don't want factorised bc MADE part of this model is to capture dependencies between channels
         self.model = PixelCNNMADEModel(self.H, self.W, self.C, self.N, self.n_bottleneck,
-                                       self.n_hidden_units, self.factorised)
+                                       self.n_hidden_units, factorised=False)
 
     def eval_dataset(self, X, bs=128):
         """
