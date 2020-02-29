@@ -9,12 +9,10 @@ from MADE import MADEModel, MADE
 from pixelCNN import PixelCNNModel
 from utils import tf_log_to_base_n, tf_log2, gather_nd
 
-# TODO need to adapt to new tf.dataset format see picelCNN eg. eval_dataset()
 # wrap model so it can be called in MADE
 class PixelCNNMADEModel(Model):
-    def __init__(self, H, W, C, N, n_bottleneck, n_hidden_units, factorised, *args, **kwargs):
+    def __init__(self, H, W, C, N, n_hidden_units, factorised, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.n_bottleneck = n_bottleneck
         self.H = H
         self.W = W
         self.C = C
@@ -23,7 +21,6 @@ class PixelCNNMADEModel(Model):
         self.factorised = factorised
 
     def build(self, input_shape):
-        # TODO: correct way to do made for every pixel? output H * W * C?
         """
         Model is
         Image -> PixelCNN (bs, H, W, C * N) -> Flatten -> Dense layer (bottleneck reduce dimensionality)
@@ -32,7 +29,6 @@ class PixelCNNMADEModel(Model):
         self.layers_list = [PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised,
                                           flat=True),
                             Flatten(),
-                            Dense(self.n_bottleneck),
                             MADEModel(self.H * self.W * self.C, self.N, self.n_hidden_units)]
         super().build(input_shape)
 
@@ -47,7 +43,7 @@ class PixelCNNMADEModel(Model):
 
 # overwrite MADE
 class PixelCNNMADE(MADE):
-    def __init__(self, H=28, W=28, C=3, N=4, learning_rate=10e-4, n_bottleneck=512, n_hidden_units=124):
+    def __init__(self, H=28, W=28, C=3, N=4, learning_rate=10e-4, n_hidden_units=124):
         """
         H, W, C image shape: height, width, channels
         N is number of values per variable
@@ -56,7 +52,6 @@ class PixelCNNMADE(MADE):
         self.H = H
         self.W = W
         self.C = C
-        self.n_bottleneck = n_bottleneck
         self.n_hidden_units = n_hidden_units
         # calls setup model and init optimiser
         # D (# vars) is H x W x C
@@ -68,7 +63,7 @@ class PixelCNNMADE(MADE):
         overwrite to pixelcnn-made model
         """
         # we don't want factorised bc MADE part of this model is to capture dependencies between channels
-        self.model = PixelCNNMADEModel(self.H, self.W, self.C, self.N, self.n_bottleneck,
+        self.model = PixelCNNMADEModel(self.H, self.W, self.C, self.N,
                                        self.n_hidden_units, factorised=False)
 
     def eval_dataset(self, X, bs=128):

@@ -158,7 +158,7 @@ PixelCNN-MADE factorised=False loss only to 0.33 and samples poor
 PixelCNN: Note from HW that should be AR over space but factorised over channels
 This doesn't affect loss since the masking enforces the conditioning there.
 In sampling factorised we need only 1 forward pass we then sample all 3 channels as they are independent
-I have implemented this
+I have implemented this and tested it works
 PixelCNN-MADE should only use unfactorised since we want MADE to capture dependencies between channels
 
 - Unit ordering
@@ -177,6 +177,10 @@ Think this is OK since the other one train loss was much lower than validation l
 
 Removed DS code!
 
-* Test Factorised sampling PixelCNN
+PixelCNN-MADE loss quite high (0.7) and samples v poor
+
+Running with np.tile instead of np.repeat but already reverted code since don't think it's this
+
+* Test new pixelcnn-made
 * Sort README
     About factorised flag on pixelCNN

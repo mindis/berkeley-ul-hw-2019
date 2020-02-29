@@ -147,7 +147,7 @@ def plot_debug_data():
     display_image_grid(X_train[:9], "", None)
 
 
-def pixel_cnn_few(model, n_in=1, n_out=100):
+def pixel_cnn_few(model, n_in=1, n_out=10000):
     """
     Run pixel CNN on subset of full data of size n_in, repeated to make a dataset of
     size n_out.
@@ -158,8 +158,8 @@ def pixel_cnn_few(model, n_in=1, n_out=100):
     # take n_in and convert to numpy
     data = np.array([x for x in X_train.take(n_in).as_numpy_iterator()])
     if len(data) == 1:
-        data = [data]
-    tf_data = tf.data.Dataset.from_tensor_slices(data * int(n_out / n_in))
+        data = np.repeat(data, n_out, axis=0)
+    tf_data = tf.data.Dataset.from_tensor_slices(data)
     train_and_eval_main(tf_data, tf_data, model, "few", n_epochs=2, log_every=10)
 
 
