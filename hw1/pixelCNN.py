@@ -340,6 +340,6 @@ if __name__ == "__main__":
     # test_maskA()
     # test_maskB()
 
-    kernel_size, inc, outc, typeA = 5, 3, 4, True
+    kernel_size, inc, outc, typeA = 5, 3, 4, False
     mask = get_pixelcnn_mask(kernel_size, inc, outc, typeA)
     display_mask(mask, None)
