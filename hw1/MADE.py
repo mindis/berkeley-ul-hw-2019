@@ -13,7 +13,8 @@ def sample_unit_numbers(n_units, min_n, n_random_vars, seed=100):
     min_n is the lowest number to use, avoids disconnected units
     """
     np.random.seed(seed)
-    return np.random.randint(min_n, n_random_vars+1, size=n_units)
+    # np upperbound excluded
+    return np.random.randint(min_n, n_random_vars, size=n_units)
 
 
 def ordered_unit_number(D, N):
@@ -107,6 +108,12 @@ class MADEModel(tf.keras.Model):
 
 class MADE:
     def __init__(self, name="MADE", N=200, D=2, one_hot=True, n_hidden_units=64, learning_rate=10e-3):
+        """
+        :param name: model name
+        :param N: number of values each var can take
+        :param D: number of variables
+        :param one_hot: if true then one-hot input before pass to model
+        """
         self.name = name
         self.N = N
         self.D = D

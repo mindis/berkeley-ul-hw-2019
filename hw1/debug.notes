@@ -184,14 +184,14 @@ Running with np.tile instead of np.repeat but already reverted code since don't 
 DS code uses factorised for PixelCNN-MADE
 
 Using
-    order_layer_units = np.repeat(np.arange(1, nrof_dims+1), nrof_units // nrof_dims+1)[:nrof_units]
-    prev_unit_numbers = ordered_unit_number(nrof_dims, nrof_bins)
+    layer_units = np.repeat(np.arange(1, nrof_dims+1), nrof_units // nrof_dims+1)[:nrof_units]
+    order_units = ordered_unit_number(nrof_dims, nrof_bins)
 Then
-    mask = get_mask_made(prev_unit_numbers, order_layer_units)
+    mask = get_mask_made(order_units, layer_units)
 Gives same input - 1st layer masks as DS
-    mask = get_mask_made(order_layer_units, order_layer_units)
+    mask = get_mask_made(layer_units, layer_units)
 (w/ above order_layer_units) gives same hidden to hidden masks as DS
-    mask = get_mask_made(order_layer_units, prev_unit_numbers-1)
+    mask = get_mask_made(layer_units, order_units-1)
 Gives same output layer masks as DS
 
 * Debug new pixelcnn-made

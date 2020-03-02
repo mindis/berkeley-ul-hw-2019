@@ -130,9 +130,9 @@ if __name__ == "__main__":
     print(ds_masks[2])
 
     from MADE import get_mask_made, ordered_unit_number, sample_unit_numbers
-    prev_unit_numbers = ordered_unit_number(nrof_dims, nrof_bins)
+    order_units = ordered_unit_number(nrof_dims, nrof_bins)
     sample_units = sample_unit_numbers(nrof_units, 1, nrof_dims)
-    order_layer_units = np.repeat(np.arange(1, nrof_dims+1), nrof_units // nrof_dims+1)[:nrof_units]
-    print(order_layer_units)
-    mask = get_mask_made(order_layer_units, prev_unit_numbers-1)
+    layer_units = np.repeat(np.arange(1, nrof_dims+1), nrof_units // nrof_dims+1)[:nrof_units]
+    print(sample_units)
+    mask = get_mask_made(sample_units, order_units)
     print(mask)
