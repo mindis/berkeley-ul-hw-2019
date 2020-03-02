@@ -194,6 +194,10 @@ Gives same input - 1st layer masks as DS
     mask = get_mask_made(layer_units, order_units-1)
 Gives same output layer masks as DS
 
+Had error in MADE unit numbers
+Meant some output layers were hidden to outs had whole rows as 0s in masks
+Might be improved now resolved that bug?
+
 * Debug new pixelcnn-made
     * Try factorised
     * Look at DS MADE masking cf yours
