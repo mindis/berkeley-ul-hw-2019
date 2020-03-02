@@ -99,3 +99,40 @@ class PixelCNNMADE(MADE):
                     pixel_dist = tfp.distributions.Categorical(probs=model_preds[:, h, w, c])
                     images[:, h, w, c] = pixel_dist.sample(1, seed=seed)
         return images
+
+
+def ds_get_masks(nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
+    m = []
+    m0 = np.repeat(np.arange(nrof_dims), nrof_bins)
+    m += [m0]
+    for i in range(nrof_layers):
+        rep = int(np.ceil(nrof_units / ((nrof_dims - 1))))
+        mx = np.repeat(np.arange(nrof_dims - 1), rep)[:nrof_units]
+        m += [mx]
+
+    mask = []
+    for i in range(len(m) - 1):
+        msk = m[i + 1][:, None] >= m[i][None, :]
+        cx = np.ones((msk.shape[0], nrof_aux))
+        msk2 = np.concatenate((cx, msk), axis=1)
+        mask += [msk2.T]
+    msk = m0[:, None] > m[-1][None, :]
+    cx = np.ones((msk.shape[0], nrof_aux))
+    msk2 = np.concatenate((cx, msk), axis=1)
+    mask += [msk2.T]
+
+    return mask
+
+
+if __name__ == "__main__":
+    nrof_units, nrof_layers, nrof_dims, nrof_bins = 6, 2, 3, 4
+    ds_masks = ds_get_masks(nrof_units, nrof_layers, nrof_dims, 0, nrof_bins)
+    print(ds_masks[2])
+
+    from MADE import get_mask_made, ordered_unit_number, sample_unit_numbers
+    prev_unit_numbers = ordered_unit_number(nrof_dims, nrof_bins)
+    sample_units = sample_unit_numbers(nrof_units, 1, nrof_dims)
+    order_layer_units = np.repeat(np.arange(1, nrof_dims+1), nrof_units // nrof_dims+1)[:nrof_units]
+    print(order_layer_units)
+    mask = get_mask_made(order_layer_units, prev_unit_numbers-1)
+    print(mask)
