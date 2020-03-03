@@ -210,7 +210,7 @@ NO, but did work better than not factorised
 * Debug new pixelcnn-made
     * Try with DS masking (see above for code to match his)
     * Try higher LR? Does seem to learn something - loss goes down
-    * Bring back in one hot the input?
+    * Bring back in one hot the input (pixelcnn -> one hot -> MADE) simple as changing one_hot flag in pixelCNN made init
 * Run gradient thing part 3
 * Sort README
     About factorised flag on pixelCNN
