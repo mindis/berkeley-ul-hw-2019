@@ -233,11 +233,15 @@ Could be in model but this seems unnecessary since if do upstream then  Model th
 Could be in PixelCNNMADEModel, this works well as minimal changes to MADE and since the aux input comes from
 PixelCNN can all be handled in this class.
 Doesn't make it as explicit for other uses that might want aux vars MADE but works well and cleanly for this use.
--- Add to pixelCNNMadeModel
+Add to pixelCNNMadeModel
 Concat aux with x then input to model.
 
 Handle aux vars (DONE)
 One hot inputs to MADE (not the pixelCNN) (DONE)
+
+Outputs on main are v uniform, all pixels are two or few colours, seems to be outputing average
+for most pixels
+Perhaps I got the setup wrong here with the aux input or the input to MADE?
 
 - Clean up Ds and Ns etc
 
