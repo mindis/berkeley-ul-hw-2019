@@ -28,6 +28,22 @@ def ordered_unit_number(D, N):
     return np.repeat(np.arange(1, D+1), N)
 
 
+def input_unit_numbers(D, N, N_aux):
+    """
+    :param D: the number of RVs
+    :param N: number of values each RV can take (because we one-hot it so each value of each RV is a single RV)
+    :param N_aux: number of auxiliary dimensions of input we have (other than input D * N)
+    So we expect inputs of shape (bs, D * N + N_aux)
+    where the first D * N are ordered unit numbers repeated N times ie. 1, 1, 1, ..., D, D, D
+    then for last N_aux inputs we have the auxiliary dimensions we have random unit numbers.
+    """
+    unit_numbers = ordered_unit_number(D, N)
+    if N_aux > 0:
+        aux_unit_numbers = sample_unit_numbers(N_aux, 1, D)
+        unit_numbers = np.hstack([unit_numbers, aux_unit_numbers])
+    return unit_numbers
+
+
 def get_mask_made(prev_unit_numbers, unit_numbers):
     """
     Gets the matrix to multiply with the weights to mask connections for MADE.
@@ -56,19 +72,19 @@ def one_hot_inputs(x, D, N):
 
 
 class MADELayer(Dense):
-    def __init__(self, n_units, prev_unit_numbers, n_random_vars,
+    def __init__(self, n_units, prev_unit_numbers, D,
                  unit_numbers=None, activation="relu", **kwargs):
         """
         n_units is the number of units in this layer
         For MADE masking:
         prev_unit_numbers is the unit numbers (maximum number of inputs to be connected to) for prev layer
-        n_random_vars is the D number of random variables in the models output
+        D is number of random variables in the models output
         unit_numbers are the numbers for each unit in this layer, if None (default) to random sampling these numbers
         """
         super().__init__(n_units, activation=activation, **kwargs)
         self.prev_unit_numbers = prev_unit_numbers
         if unit_numbers is None:
-            unit_numbers = sample_unit_numbers(n_units, np.min(prev_unit_numbers), n_random_vars)
+            unit_numbers = sample_unit_numbers(n_units, np.min(prev_unit_numbers), D)
         self.unit_numbers = unit_numbers
 
     def build(self, input_shape):
@@ -104,7 +120,7 @@ class MADEModel(tf.keras.Model):
 
     def build(self, input_shape, **kwargs):
         # get ordered unit numbers for inputs
-        in_unit_numbers = ordered_unit_number(self.D+self.N_aux, self.N)
+        in_unit_numbers = input_unit_numbers(self.D, self.N, self.N_aux)
         self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D)
         self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D)
         # N * D outputs

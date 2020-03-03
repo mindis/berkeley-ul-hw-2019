@@ -35,7 +35,7 @@ class PixelCNNMADEModel(Model):
         self.pixelcnn_layers = [PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised, flat=True),
                                 Flatten()]
         # we have auxiliary variables of the flattened image shape
-        self.made_layers = [MADEModel(self.D, self.N, self.n_hidden_units, N_aux=self.D)]
+        self.made_layers = [MADEModel(self.D, self.N, self.n_hidden_units, N_aux=self.D*self.N)]
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
