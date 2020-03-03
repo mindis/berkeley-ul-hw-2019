@@ -216,8 +216,14 @@ BIG CHANGE to pixelCNN-MADE
 Realised I'm going about this completely wrong!
 Should be a MADE over channels for each pixel (each pixel like a data point), then use the pixelCNN as auxiliary
 input
+
 Mask on aux for ith pixel should be 1s up to (not incld) i then 0s
 I suppose we concat this to the C vector input for the pixel's channel values which we MADE over?
+UPDATE:
+I'm now thinking it's that we have inputs D * N (where D = C here for a value for each channel) from the image
+then D * C values for that pixel from pixelCNN. This seems to match DS code and the idea they give in the
+assignment, but is this the right aux vector input from pixelCNN, it says for x1 to i-1 which makes me think
+a D*N vector each time is wrong and we need a H*W*C vector then masked for up to the current pixel?
 
 Aux vars
 handle aux vars.
@@ -230,8 +236,9 @@ Doesn't make it as explicit for other uses that might want aux vars MADE but wor
 -- Add to pixelCNNMadeModel
 Concat aux with x then input to model.
 
-- Handle aux vars
-- One hot inputs to MADE (not the pixelCNN)
+Handle aux vars (DONE)
+One hot inputs to MADE (not the pixelCNN) (DONE)
+
 - Clean up Ds and Ns etc
 
 * Debug new pixelcnn-made

@@ -85,11 +85,12 @@ class MADELayer(Dense):
 
 
 class MADEModel(tf.keras.Model):
-    def __init__(self, D, N, n_hidden_units, *args, **kwargs):
+    def __init__(self, D, N, n_hidden_units, N_aux=0, *args, **kwargs):
         """
         D is the number of variables.
         N is the number of values for this variable, so each of the D variables can take on
         n_hidden_units is number of units in hidden layers
+        N_aux is the number of auxiliary input dimensions (default 0)
         values [0, N-1] for N possible values.
         eg. x1, x2 both [0, 9], D = 2, N = 10
         Because we extend to non-binary, multiple inputs/outputs can be for the same
@@ -99,10 +100,11 @@ class MADEModel(tf.keras.Model):
         self.D = D
         self.N = N
         self.n_hidden_units = n_hidden_units
+        self.N_aux = N_aux
 
     def build(self, input_shape, **kwargs):
         # get ordered unit numbers for inputs
-        in_unit_numbers = ordered_unit_number(self.D, self.N)
+        in_unit_numbers = ordered_unit_number(self.D+self.N_aux, self.N)
         self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D)
         self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D)
         # N * D outputs

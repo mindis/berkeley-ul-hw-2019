@@ -34,7 +34,8 @@ class PixelCNNMADEModel(Model):
         """
         self.pixelcnn_layers = [PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised, flat=True),
                                 Flatten()]
-        self.made_layers = [MADEModel(self.D, self.N, self.n_hidden_units)]
+        # we have auxiliary variables of the flattened image shape
+        self.made_layers = [MADEModel(self.D, self.N, self.n_hidden_units, N_aux=self.D)]
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
@@ -46,7 +47,9 @@ class PixelCNNMADEModel(Model):
         for layer in self.pixelcnn_layers:
             x = layer(x)
         # we input the pixelCNN outputs as auxiliary variables to MADE
-        aux_input = x
+        # reshape such that each pixel is a data point in a batch of size (n_images_in_batch * image_size_flat)
+        # each pixel is then passed through MADE
+        aux_input = tf.reshape(x, (-1, self.D * self.N))
         # we input the current pixel's channels one-hot to MADE
         x_one_hot = one_hot_inputs(inputs, self.D, self.N)
         # concat inputs and aux inputs for MADE
@@ -58,11 +61,11 @@ class PixelCNNMADEModel(Model):
 
 # overwrite MADE
 class PixelCNNMADE(MADE):
-    def __init__(self, H=28, W=28, C=3, N=4, learning_rate=10e-4, n_hidden_units=124):
+    def __init__(self, H=28, W=28, C=3, N=4, D=3, learning_rate=10e-4, n_hidden_units=124):
         """
         H, W, C image shape: height, width, channels
         N is number of values per variable
-        D is number of variables
+        D is number of variables, here it's 3 as one for each channel of the pixel
         """
         name = "PixelCNN-MADE"
         self.H = H
@@ -72,7 +75,7 @@ class PixelCNNMADE(MADE):
         # calls setup model and init optimiser
         # D (# vars) is H x W x C
         # We don't want input to be one_hot as it is passed to pixelCNN, we then one_hot pixelcnn output before MADE
-        super().__init__(name, N, self.H * self.W * self.C, n_hidden_units=124, one_hot=False,
+        super().__init__(name, N, D, n_hidden_units=124, one_hot=False,
                          learning_rate=learning_rate)
 
     def setup_model(self):
