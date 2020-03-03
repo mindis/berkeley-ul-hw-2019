@@ -125,14 +125,17 @@ def ds_get_masks(nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
 
 
 if __name__ == "__main__":
-    nrof_units, nrof_layers, nrof_dims, nrof_bins = 6, 2, 3, 4
+    nrof_dims, nrof_bins = 3, 4
+    nrof_units, nrof_layers = 12, 2
     ds_masks = ds_get_masks(nrof_units, nrof_layers, nrof_dims, 0, nrof_bins)
     print(ds_masks[2])
 
     from MADE import get_mask_made, ordered_unit_number, sample_unit_numbers
     order_units = ordered_unit_number(nrof_dims, nrof_bins)
     sample_units = sample_unit_numbers(nrof_units, 1, nrof_dims)
-    layer_units = np.repeat(np.arange(1, nrof_dims+1), nrof_units // nrof_dims+1)[:nrof_units]
+    layer_units = np.repeat(np.arange(1, nrof_dims), nrof_units // nrof_dims+1)[:nrof_units]
+    print(order_units)
+    print(layer_units)
     print(sample_units)
     mask = get_mask_made(sample_units, order_units)
     print(mask)
