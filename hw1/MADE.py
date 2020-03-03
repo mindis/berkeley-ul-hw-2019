@@ -25,7 +25,7 @@ def ordered_unit_number(D, N):
     Gives ordered units so we can sample by conditioning sequentially. Ie. the first N values will be unit number
     1 then the next N will be 2, ... the last N will be unit number D
     """
-    return np.repeat(np.arange(1, D), N)
+    return np.repeat(np.arange(1, D+1), N)
 
 
 def get_mask_made(prev_unit_numbers, unit_numbers):

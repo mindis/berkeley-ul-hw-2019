@@ -133,7 +133,8 @@ if __name__ == "__main__":
     from MADE import get_mask_made, ordered_unit_number, sample_unit_numbers
     order_units = ordered_unit_number(nrof_dims, nrof_bins)
     sample_units = sample_unit_numbers(nrof_units, 1, nrof_dims)
-    layer_units = np.repeat(np.arange(1, nrof_dims), nrof_units // nrof_dims+1)[:nrof_units]
+    rep = int(np.ceil(nrof_units / ((nrof_dims - 1))))
+    layer_units = np.repeat(np.arange(1, nrof_dims), rep)[:nrof_units]
     print(order_units)
     print(layer_units)
     print(sample_units)
