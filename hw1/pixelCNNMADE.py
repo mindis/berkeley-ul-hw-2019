@@ -3,19 +3,25 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from matplotlib import pyplot as plt
 from tensorflow_core.python.keras import Input, Model
-from tensorflow_core.python.keras.layers import Dense, Flatten
+from tensorflow_core.python.keras.layers import Dense, Flatten, Lambda
 
-from MADE import MADEModel, MADE
+from MADE import MADEModel, MADE, one_hot_inputs
 from pixelCNN import PixelCNNModel
 from utils import tf_log_to_base_n, tf_log2, gather_nd
 
 # wrap model so it can be called in MADE
 class PixelCNNMADEModel(Model):
-    def __init__(self, H, W, C, N, n_hidden_units, factorised, *args, **kwargs):
+    def __init__(self, H, W, C, N, D, n_hidden_units, factorised, *args, **kwargs):
+        """
+        H, W, C image shape: height, width, channels
+        N is number of values per variable
+        D is number of variables
+        """
         super().__init__(*args, **kwargs)
         self.H = H
         self.W = W
         self.C = C
+        self.D = D
         self.N = N
         self.n_hidden_units = n_hidden_units
         self.factorised = factorised
@@ -23,18 +29,17 @@ class PixelCNNMADEModel(Model):
     def build(self, input_shape):
         """
         Model is
-        Image -> PixelCNN (bs, H, W, C * N) -> Flatten -> Dense layer (bottleneck reduce dimensionality)
-        -> MADE (D = H x W x C variables for each channel each pixel)
+        Image -> PixelCNN (bs, H, W, C * N) -> Flatten -> One hot -> MADE (D variables)
         """
         self.layers_list = [PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised,
                                           flat=True),
                             Flatten(),
-                            MADEModel(self.H * self.W * self.C, self.N, self.n_hidden_units)]
+                            MADEModel(self.D, self.N, self.n_hidden_units)]
         super().build(input_shape)
 
     def call(self, x, **kwargs):
         """
-        output shape is (bs, H * W * C, N)
+        output shape is (bs, D, N)
         """
         for layer in self.layers_list:
             x = layer(x)
@@ -47,6 +52,7 @@ class PixelCNNMADE(MADE):
         """
         H, W, C image shape: height, width, channels
         N is number of values per variable
+        D is number of variables
         """
         name = "PixelCNN-MADE"
         self.H = H
@@ -55,6 +61,7 @@ class PixelCNNMADE(MADE):
         self.n_hidden_units = n_hidden_units
         # calls setup model and init optimiser
         # D (# vars) is H x W x C
+        # We don't want input to be one_hot as it is passed to pixelCNN, we then one_hot pixelcnn output before MADE
         super().__init__(name, N, self.H * self.W * self.C, n_hidden_units=124, one_hot=False,
                          learning_rate=learning_rate)
 
@@ -63,7 +70,7 @@ class PixelCNNMADE(MADE):
         overwrite to pixelcnn-made model
         """
         # we don't want factorised bc MADE part of this model is to capture dependencies between channels
-        self.model = PixelCNNMADEModel(self.H, self.W, self.C, self.N,
+        self.model = PixelCNNMADEModel(self.H, self.W, self.C, self.N, self.D,
                                        self.n_hidden_units, factorised=False)
 
     def eval_dataset(self, X, bs=128):

@@ -136,11 +136,19 @@ class MADE:
         Get outputs from model (logits for softmax)
         """
         if self.one_hot:
-            x = tf.cast(x, tf.int32)
-            one_hot = tf.one_hot(x, self.N)
-            x = tf.reshape(one_hot, (-1, self.N * self.D))
+            x = self.one_hot_inputs(x)
         model_outputs = self.model(x)
         return model_outputs
+
+    def one_hot_inputs(self, x):
+        """
+        Converts inputs to one hot and reshapes for MADE
+        :return: processed inputs (-1, N*D)
+        """
+        x = tf.cast(x, tf.int32)
+        one_hot = tf.one_hot(x, self.N)
+        x = tf.reshape(one_hot, (-1, self.N * self.D))
+        return x
 
     @tf.function
     def forward_softmax(self, x):

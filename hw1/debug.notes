@@ -207,10 +207,21 @@ Though the output layer we then -1 to make the inequality strict
 Tried factorised
 NO, but did work better than not factorised
 
+DS seems to be a MADE over channels ie. D = C, N = 4 not over pixels like yours with D=H*W*C, N = 4
+But how does MADE part know which pixel we are on? Seems to take each pixel as a C x N ie. 3 x 4 vector of
+one hot discrete values for each channel.
+
+03rd March 2020
+BIG CHANGE to pixelCNN-MADE
+Realised I'm going about this completely wrong!
+Should be a MADE over channels for each pixel (each pixel like a data point), then use the pixelCNN as auxiliary
+input
+Mask on aux for ith pixel should be 1s up to (not incld) i then 0s
+I suppose we concat this to the C vector input for the pixel's channel values which we MADE over?
+- One hot inputs to MADE (not the pixelCNN)
+- Clean up Ds and Ns etc
+
 * Debug new pixelcnn-made
-    * Try with DS masking (see above for code to match his)
-    * Try higher LR? Does seem to learn something - loss goes down
-    * Bring back in one hot the input (pixelcnn -> one hot -> MADE) simple as changing one_hot flag in pixelCNN made init
 * Run gradient thing part 3
 * Sort README
     About factorised flag on pixelCNN
