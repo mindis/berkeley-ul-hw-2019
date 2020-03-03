@@ -218,6 +218,19 @@ Should be a MADE over channels for each pixel (each pixel like a data point), th
 input
 Mask on aux for ith pixel should be 1s up to (not incld) i then 0s
 I suppose we concat this to the C vector input for the pixel's channel values which we MADE over?
+
+Aux vars
+handle aux vars.
+Could be in MADE.forward_logits() since this is called by all forward passes
+    Here would be separate input with potential None value if no aux input. This makes it explicit.
+Could be in model but this seems unnecessary since if do upstream then  Model then acts as though it's a larger input.
+Could be in PixelCNNMADEModel, this works well as minimal changes to MADE and since the aux input comes from
+PixelCNN can all be handled in this class.
+Doesn't make it as explicit for other uses that might want aux vars MADE but works well and cleanly for this use.
+-- Add to pixelCNNMadeModel
+Concat aux with x then input to model.
+
+- Handle aux vars
 - One hot inputs to MADE (not the pixelCNN)
 - Clean up Ds and Ns etc
 

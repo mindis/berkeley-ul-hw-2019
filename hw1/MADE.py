@@ -41,6 +41,20 @@ def get_mask_made(prev_unit_numbers, unit_numbers):
     return np.array(np.stack(unit_masks), dtype=np.float32)
 
 
+def one_hot_inputs(x, D, N):
+    """
+    :param x: inputs
+    :param D: the number of RVs
+    :param N: number of values each RV can take (because we one-hot it so each value of each RV is a single RV)
+    Converts inputs to one hot and reshapes for MADE
+    :return: processed inputs (-1, N*D)
+    """
+    x = tf.cast(x, tf.int32)
+    one_hot = tf.one_hot(x, N)
+    x = tf.reshape(one_hot, (-1, N * D))
+    return x
+
+
 class MADELayer(Dense):
     def __init__(self, n_units, prev_unit_numbers, n_random_vars,
                  unit_numbers=None, activation="relu", **kwargs):
@@ -136,19 +150,9 @@ class MADE:
         Get outputs from model (logits for softmax)
         """
         if self.one_hot:
-            x = self.one_hot_inputs(x)
+            x = one_hot_inputs(x, self.D, self.N)
         model_outputs = self.model(x)
         return model_outputs
-
-    def one_hot_inputs(self, x):
-        """
-        Converts inputs to one hot and reshapes for MADE
-        :return: processed inputs (-1, N*D)
-        """
-        x = tf.cast(x, tf.int32)
-        one_hot = tf.one_hot(x, self.N)
-        x = tf.reshape(one_hot, (-1, self.N * self.D))
-        return x
 
     @tf.function
     def forward_softmax(self, x):

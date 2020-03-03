@@ -29,19 +29,29 @@ class PixelCNNMADEModel(Model):
     def build(self, input_shape):
         """
         Model is
-        Image -> PixelCNN (bs, H, W, C * N) -> Flatten -> One hot -> MADE (D variables)
+        Image -> PixelCNN (bs, H, W, C * N) -> Flatten -> aux
+        (Image one hot, aux) -> MADE (D variables)
         """
-        self.layers_list = [PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised,
-                                          flat=True),
-                            Flatten(),
-                            MADEModel(self.D, self.N, self.n_hidden_units)]
+        self.pixelcnn_layers = [PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised, flat=True),
+                                Flatten()]
+        self.made_layers = [MADEModel(self.D, self.N, self.n_hidden_units)]
         super().build(input_shape)
 
-    def call(self, x, **kwargs):
+    def call(self, inputs, **kwargs):
         """
         output shape is (bs, D, N)
         """
-        for layer in self.layers_list:
+        x = inputs
+        # get pixelCNN outputs
+        for layer in self.pixelcnn_layers:
+            x = layer(x)
+        # we input the pixelCNN outputs as auxiliary variables to MADE
+        aux_input = x
+        # we input the current pixel's channels one-hot to MADE
+        x_one_hot = one_hot_inputs(inputs, self.D, self.N)
+        # concat inputs and aux inputs for MADE
+        x = tf.concat([aux_input, x_one_hot], -1)
+        for layer in self.made_layers:
             x = layer(x)
         x = tf.reshape(x, (-1, self.H, self.W, self.C, self.N))
         return x
