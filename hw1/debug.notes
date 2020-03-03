@@ -239,13 +239,18 @@ Concat aux with x then input to model.
 Handle aux vars (DONE)
 One hot inputs to MADE (not the pixelCNN) (DONE)
 
-Outputs on main are v uniform, all pixels are two or few colours, seems to be outputing average
-for most pixels
+Ran on main, loss only to 0.5 and
+outputs are v uniform, all pixels are two or few colours, seems to be outputing average for most pixels
 Perhaps I got the setup wrong here with the aux input or the input to MADE?
 
-- Clean up Ds and Ns etc
+DS has diff masking,
+also adds aux input to each layer
 
 * Debug new pixelcnn-made
+    * try aux input each layer
+    * Try diff masking
+    * try some of DS code
+* Clean up Ds and Ns etc
 * Run gradient thing part 3
 * Sort README
     About factorised flag on pixelCNN
