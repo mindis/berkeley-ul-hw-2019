@@ -220,8 +220,8 @@ input
 Mask on aux for ith pixel should be 1s up to (not incld) i then 0s
 I suppose we concat this to the C vector input for the pixel's channel values which we MADE over?
 UPDATE:
-I'm now thinking it's that we have inputs D * N (where D = C here for a value for each channel) from the image
-then D * C values for that pixel from pixelCNN. This seems to match DS code and the idea they give in the
+I'm now thinking it's that we have inputs D * N (where D = C here for a value for each channel) from the image data (1-hot)
+then D * N values for that pixel from pixelCNN outputs. This seems to match DS code and the idea they give in the
 assignment, but is this the right aux vector input from pixelCNN, it says for x1 to i-1 which makes me think
 a D*N vector each time is wrong and we need a H*W*C vector then masked for up to the current pixel?
 
