@@ -246,10 +246,14 @@ Perhaps I got the setup wrong here with the aux input or the input to MADE?
 DS has diff masking,
 also adds aux input to each layer
 
+tried with concat other way
+Not solved it
+
+Try diff masking that matches DS (see above for code)
+Doesnt look to be it
+
 * Debug new pixelcnn-made
-    * try with concat other way
     * try aux input each layer
-    * Try diff masking
     * try some of DS code
 * Clean up Ds and Ns etc
 * Run gradient thing part 3

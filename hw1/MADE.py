@@ -5,16 +5,20 @@ from tensorflow_core.python.keras.layers import Dense
 from utils import gather_nd, tf_log_to_base_n
 
 
-def sample_unit_numbers(n_units, min_n, n_random_vars, seed=100):
+def sample_unit_numbers(n_units, min_n, D, seed=100):
     """
-    Sample each unit's number (the max number of inputs) from 1 to D-1 where D is the number of
-    random variables in the outputs of the whole model.
+    D is number of random vars in the outputs of the whole model
+    Sample each unit's number (the max number of inputs) from 1 to D-1
     n_units in this layer
     min_n is the lowest number to use, avoids disconnected units
     """
     np.random.seed(seed)
+    rep = int(np.ceil(n_units / ((D - 1))))
+    layer_units = np.repeat(np.arange(min_n, D), rep)[:n_units]
+    return layer_units
+    np.random.seed(seed)
     # np upperbound excluded
-    return np.random.randint(min_n, n_random_vars, size=n_units)
+    return np.random.randint(min_n, D, size=n_units)
 
 
 def ordered_unit_number(D, N):
@@ -130,19 +134,11 @@ class MADEModel(tf.keras.Model):
         self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
                                       activation=None)
 
-    def call(self, inputs, training=None, mask=None, has_aux=False):
-        # TODO: clean this up if keeping
-        if has_aux:
-            x, aux = inputs
-            x = self.layer1(tf.concat([x, aux], -1))
-            x = self.layer2(tf.concat([x, aux], -1))
-            x = self.output_layer(tf.concat([x, aux], -1))
-            x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
-        else:
-            x = self.layer1(inputs)
-            x = self.layer2(x)
-            x = self.output_layer(x)
-            x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
+    def call(self, inputs, training=None, mask=None):
+        x = self.layer1(inputs)
+        x = self.layer2(x)
+        x = self.output_layer(x)
+        x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
         return x_i_outputs
 
 
