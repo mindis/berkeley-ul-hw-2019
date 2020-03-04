@@ -247,6 +247,7 @@ DS has diff masking,
 also adds aux input to each layer
 
 * Debug new pixelcnn-made
+    * try with concat other way
     * try aux input each layer
     * Try diff masking
     * try some of DS code

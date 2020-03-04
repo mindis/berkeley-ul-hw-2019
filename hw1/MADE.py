@@ -130,11 +130,19 @@ class MADEModel(tf.keras.Model):
         self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
                                       activation=None)
 
-    def call(self, inputs, training=None, mask=None):
-        x = self.layer1(inputs)
-        x = self.layer2(x)
-        x = self.output_layer(x)
-        x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
+    def call(self, inputs, training=None, mask=None, has_aux=False):
+        # TODO: clean this up if keeping
+        if has_aux:
+            x, aux = inputs
+            x = self.layer1(tf.concat([x, aux], -1))
+            x = self.layer2(tf.concat([x, aux], -1))
+            x = self.output_layer(tf.concat([x, aux], -1))
+            x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
+        else:
+            x = self.layer1(inputs)
+            x = self.layer2(x)
+            x = self.output_layer(x)
+            x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
         return x_i_outputs
 
 
