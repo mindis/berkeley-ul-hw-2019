@@ -254,7 +254,10 @@ Doesnt look to be it
 
 * Debug new pixelcnn-made
     * try aux input each layer
+        need split inputs or input list (but get error in build() with list inputs)
+        then also concat more unit numbers to prev_unit_numbers for the aux vars input each layer
     * try some of DS code
+        with my pixelCNN and his MADE and vice versa
 * Clean up Ds and Ns etc
 * Run gradient thing part 3
 * Sort README

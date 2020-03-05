@@ -126,18 +126,22 @@ class MADEModel(tf.keras.Model):
         # get ordered unit numbers for inputs
         in_unit_numbers = input_unit_numbers(self.D, self.N, self.N_aux)
         self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D)
-        self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D)
+        self.layer2 = MADELayer(self.n_hidden_units, tf.concat([self.layer1.unit_numbers,
+                                                                sample_unit_numbers(self.N_aux,
+                                                                                    min(self.layer1.unit_numbers),
+                                                                                    self.D)]), self.D)
         # N * D outputs
         # Ordered unit numbers for output
         # -1 because the output layer is a strict inequality
-        out_unit_numbers = ordered_unit_number(self.D, self.N) - 1
+        out_unit_numbers = input_unit_numbers(self.D, self.N, self.N_aux) - 1
         self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
                                       activation=None)
 
     def call(self, inputs, training=None, mask=None):
         x = self.layer1(inputs)
-        x = self.layer2(x)
-        x = self.output_layer(x)
+        aux = inputs[-self.N_aux:]
+        x = self.layer2(tf.concat([x, aux]))
+        x = self.output_layer(tf.concat([x, aux]))
         x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
         return x_i_outputs
 
