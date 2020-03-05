@@ -126,22 +126,25 @@ class MADEModel(tf.keras.Model):
         # get ordered unit numbers for inputs
         in_unit_numbers = input_unit_numbers(self.D, self.N, self.N_aux)
         self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D)
-        self.layer2 = MADELayer(self.n_hidden_units, tf.concat([self.layer1.unit_numbers,
-                                                                sample_unit_numbers(self.N_aux,
-                                                                                    min(self.layer1.unit_numbers),
-                                                                                    self.D)]), self.D)
+        prev_unit_numbers_aux = tf.concat([self.layer1.unit_numbers, sample_unit_numbers(self.N_aux,
+                                           min(self.layer1.unit_numbers),
+                                           self.D)], -1)
+        self.layer2 = MADELayer(self.n_hidden_units, prev_unit_numbers_aux, self.D)
         # N * D outputs
         # Ordered unit numbers for output
         # -1 because the output layer is a strict inequality
-        out_unit_numbers = input_unit_numbers(self.D, self.N, self.N_aux) - 1
-        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
+        out_unit_numbers = ordered_unit_number(self.D, self.N) - 1
+        prev_unit_numbers_aux = tf.concat([self.layer2.unit_numbers, sample_unit_numbers(self.N_aux,
+                                                                                         min(self.layer2.unit_numbers),
+                                                                                         self.D)], -1)
+        self.output_layer = MADELayer(self.N * self.D, prev_unit_numbers_aux, self.D, unit_numbers=out_unit_numbers,
                                       activation=None)
 
     def call(self, inputs, training=None, mask=None):
         x = self.layer1(inputs)
-        aux = inputs[-self.N_aux:]
-        x = self.layer2(tf.concat([x, aux]))
-        x = self.output_layer(tf.concat([x, aux]))
+        aux = inputs[:, -self.N_aux:]
+        x = self.layer2(tf.concat([x, aux], -1))
+        x = self.output_layer(tf.concat([x, aux], -1))
         x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
         return x_i_outputs
 
@@ -170,7 +173,6 @@ class MADE:
         """
         self.model = MADEModel(self.D, self.N, self.n_hidden_units)
 
-    @tf.function
     def forward_logits(self, x):
         """
         Get outputs from model (logits for softmax)
