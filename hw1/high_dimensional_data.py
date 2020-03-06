@@ -1,5 +1,7 @@
 import numpy as np
 import tensorflow as tf
+
+from made_ds import DS_PixelCNN_MADE
 from pixelCNN import PixelCNN, display_image_grid, plot_image
 from pixelCNNMADE import PixelCNNMADE
 from utils import TrainingLogger
@@ -166,7 +168,7 @@ def pixel_cnn_few(model, n_in=1, n_out=10000):
 if __name__ == "__main__":
     set_seed()
 
-    models = {"PixelCNN": PixelCNN, "PixelCNN-MADE": PixelCNNMADE}
+    models = {"PixelCNN": PixelCNN, "PixelCNN-MADE": PixelCNNMADE, "DS-PixelCNN-MADE": DS_PixelCNN_MADE}
     tasks = {"debug": pixel_cnn_debug, "few": pixel_cnn_few, "main": pixel_cnn_main}
 
     parser = argparse.ArgumentParser()

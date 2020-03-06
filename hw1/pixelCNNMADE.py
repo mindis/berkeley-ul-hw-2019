@@ -59,6 +59,7 @@ class PixelCNNMADEModel(Model):
         x = tf.reshape(x, (-1, self.H, self.W, self.C, self.N))
         return x
 
+
 # overwrite MADE
 class PixelCNNMADE(MADE):
     def __init__(self, H=28, W=28, C=3, N=4, D=3, learning_rate=10e-4, n_hidden_units=124):
