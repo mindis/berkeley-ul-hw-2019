@@ -253,10 +253,9 @@ Tried diff masking in my code that matches DS (see above for code)
 Doesnt look to be it
 
 Tried aux input to each layer
-xx TODO
+Not solved it
 
 * Debug new pixelcnn-made
-    * try aux input each layer
     * try some of DS code
         with my pixelCNN and his MADE and vice versa
 * Clean up Ds and Ns etc
