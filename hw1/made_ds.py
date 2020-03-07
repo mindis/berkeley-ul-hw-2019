@@ -69,7 +69,7 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         self.n_layers = n_layers
 
     def build(self, input_shape):
-        self.pixelCNN = PixelCNNModel(self.H, self.W, self.C, self.N, False)
+        self.pixelCNN = PixelCNNModel(self.H, self.W, self.C, self.N, True)
         # made
         masks = get_masks(self.n_hidden_units, self.n_layers, self.D, self.N * self.D, self.N)
         hidden = [self.n_hidden_units] * self.n_layers + [self.D * self.N]
@@ -92,7 +92,7 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
 
 
 class DS_PixelCNN_MADE:
-    def __init__(self, H=28, W=28, C=3, N=4, D=3, learning_rate=10e-3, n_hidden_units=124):
+    def __init__(self, H=28, W=28, C=3, N=4, D=3, learning_rate=10e-4, n_hidden_units=124):
         self.H = H
         self.W = W
         self.C = C
@@ -104,8 +104,8 @@ class DS_PixelCNN_MADE:
         self.optimizer = tf.optimizers.Adam(learning_rate)
 
     def eval(self, x):
-        y = self.model(x)
-        return self.loss(x, y)
+        logits = self.model(x)
+        return self.loss(x, logits)
 
     def loss(self, x, logits):
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=tf.cast(x, tf.int32), logits=logits)
