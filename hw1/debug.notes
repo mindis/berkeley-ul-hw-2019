@@ -255,6 +255,10 @@ Doesnt look to be it
 Tried aux input to each layer
 Not solved it
 
+Have got my pixelcnn then DS' MADE working on debug
+Tried on main data
+** TODO **
+
 * Debug new pixelcnn-made
     * try some of DS code
         with my pixelCNN and his MADE and vice versa

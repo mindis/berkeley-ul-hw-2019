@@ -2,18 +2,25 @@ import tensorflow as tf
 import numpy as np
 import tensorflow_probability as tfp
 
-from pixelCNN import PixelCNN
+from pixelCNN import PixelCNN, PixelCNNModel
 
 
-def dense_masked(x, nrof_units, mask, activation=None):
-    nrof_inputs = x.get_shape()[1]
-    kernel = tf.Variable(shape=(nrof_inputs, nrof_units), dtype=tf.float32,
-                             initializer=tf.initializers.glorot_normal, trainable=True)
-    bias = tf.Variable(shape=(nrof_units,), dtype=tf.float32,
-                           initializer=tf.initializers.zeros, trainable=True)
-    y = tf.tensordot(x, kernel * mask, 1) + bias
-    y = activation(y) if activation else y
-    return y
+class DenseMasked(tf.keras.layers.Layer):
+    def __init__(self, nrof_units, mask, activation=None, **kwargs):
+        super(DenseMasked, self).__init__(**kwargs)
+        self._mask = mask
+        self._activation = activation
+        self.nrof_units = nrof_units
+
+    def build(self, input_shape):
+        nrof_inputs = input_shape[1]
+        self._kernel = tf.Variable(tf.initializers.glorot_normal()((nrof_inputs, self.nrof_units)), dtype=tf.float32, trainable=True)
+        self._bias = tf.Variable(tf.initializers.zeros()((self.nrof_units,)), dtype=tf.float32, trainable=True)
+
+    def call(self, inputs, **kwargs):
+        y = tf.tensordot(inputs, self._kernel * self._mask, 1) + self._bias
+        y = self._activation(y) if self._activation else y
+        return y
 
 
 def get_masks(nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
@@ -46,33 +53,59 @@ def made(x, aux, nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
     for i, h in enumerate(hidden):
         activation = tf.nn.relu if i < nrof_layers else None
         xc = tf.concat([aux, x], -1)
-        x = dense_masked(xc, h, masks[i], activation=activation)
+        x = DenseMasked(h, masks[i], activation=activation)(xc)
     return x
 
 
 class DS_PixelCNN_MADE_Model(tf.keras.Model):
-    def __init__(self):
-        self.pixelCNN = PixelCNN()
+    def __init__(self, H, W, C, N, D, n_hidden_units=124, n_layers=2):
+        super(DS_PixelCNN_MADE_Model, self).__init__()
+        self.H = H
+        self.W = W
+        self.C = C
+        self.N = N
+        self.D = D
+        self.n_hidden_units = n_hidden_units
+        self.n_layers = n_layers
+
+    def build(self, input_shape):
+        self.pixelCNN = PixelCNNModel(self.H, self.W, self.C, self.N, False)
+        # made
+        masks = get_masks(self.n_hidden_units, self.n_layers, self.D, self.N * self.D, self.N)
+        hidden = [self.n_hidden_units] * self.n_layers + [self.D * self.N]
+        self.made_layers = []
+        for i, h in enumerate(hidden):
+            activation = tf.nn.relu if i < self.n_layers else None
+            self.made_layers.append(DenseMasked(h, masks[i], activation=activation))
 
     def call(self, inputs, training=None, mask=None):
-        x_made = tf.reshape(tf.one_hot(inputs, depth=4), (-1, 3 * 4))
-        aux = self.pixelCNN(inputs)
-        aux_rshp = tf.reshape(aux, (-1, 3 * 4))
-        y_made = made(x_made, aux_rshp, nrof_units=128, nrof_layers=2, nrof_dims=3, nrof_aux=3 * 4, nrof_bins=4)
-        y_made_rshp = tf.reshape(y_made, (-1, 28, 28, 3, 4))
+        x_made = tf.reshape(tf.one_hot(tf.cast(inputs, tf.int32), depth=4), (-1, self.N * self.D))
+        x_pixelcnn = tf.reshape(inputs, (-1, self.H, self.W, self.C))
+        aux = self.pixelCNN(x_pixelcnn)
+        aux_rshp = tf.reshape(aux, (-1, self.N * self.D))
+        x = x_made
+        for layer in self.made_layers:
+            xc = tf.concat([aux_rshp, x], -1)
+            x = layer(xc)
+        y_made_rshp = tf.reshape(x, (-1, self.H, self.W, self.C, self.N))
         return y_made_rshp
 
 
 class DS_PixelCNN_MADE:
-    def __init__(self, lr=10e-4):
-        self.H, self.W, self.C = 28, 28, 3
-        self.N = 4
-        self.model = DS_PixelCNN_MADE_Model()
-        self.optimizer = tf.optimizers.Adam(lr)
+    def __init__(self, H=28, W=28, C=3, N=4, D=3, learning_rate=10e-3, n_hidden_units=124):
+        self.H = H
+        self.W = W
+        self.C = C
+        self.N = N
+        self.D = D
+        self.name = "DS_PixelCNN_MADE"
+        self.n_hidden_units = n_hidden_units
+        self.model = DS_PixelCNN_MADE_Model(H, W, C, N, D, n_hidden_units=n_hidden_units)
+        self.optimizer = tf.optimizers.Adam(learning_rate)
 
     def eval(self, x):
         y = self.model(x)
-        return self.loss(x, y).numpy()
+        return self.loss(x, y)
 
     def loss(self, x, logits):
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=tf.cast(x, tf.int32), logits=logits)
