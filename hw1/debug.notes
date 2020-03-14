@@ -279,18 +279,10 @@ With fac=False
 So I guess this is wrong masking due to the low loss but poor samples? It cheats and looks at
 other pixel values but then when we sample the other pixel values are random / zero
 
-Trying my code with another MADE
-So this was the DS MADE adapted code but with masking from someone else, with my pixelCNN
-https://github.com/nicklashansen/pixelcnn-made
-This MADE masking is weird basically 0s out the top left corner?
-Loss comes along well to 0.1, samples not great but best of all the pixelCNN MADE
-
-Tried all my code with just the new MADE masking
-Loss to 0 but all green - think the mask doesn't match with my pixelCNN
-So issue could be my supporting MADE code (since masks and pixelCNN same here)
 
 * Debug new pixelcnn-made
-    * Look MADE supporting code cf DS (when both use non-DS other guy masks) then look at MADE masking
+    * Try non-DS masking with the DS code and my PixelCNN (since wasn't proper try before!)
+    * Look MADE masking cf DS MADE masking
 - Factorised=True seems important, not sure why?
 * Clean up Ds and Ns etc
 * Run gradient thing part 3

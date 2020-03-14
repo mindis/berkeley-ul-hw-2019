@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import tensorflow_probability as tfp
 
-from pixelCNN import PixelCNN, PixelCNNModel
+from pixelCNN import PixelCNNModel
 
 
 class DenseMasked(tf.keras.layers.Layer):
@@ -44,22 +44,6 @@ def get_masks(nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
     mask += [msk2.T]
 
     return mask
-
-
-def made(x, aux, nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
-    x = tf.cast(x, tf.float32)
-    masks = get_masks(nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins)
-    hidden = [nrof_units] * nrof_layers + [nrof_dims * nrof_bins]
-    for i, h in enumerate(hidden):
-        activation = tf.nn.relu if i < nrof_layers else None
-        xc = tf.concat([aux, x], -1)
-        # TODO: trying alternate made masking from pixel-cnn github
-        nx, ny = masks[i].shape
-        mask = np.ones((nx, ny))
-        mask[:nx // 2, :ny // 2] = 0
-
-        x = DenseMasked(h, masks, activation=activation)(xc)
-    return x
 
 
 class DS_PixelCNN_MADE_Model(tf.keras.Model):
