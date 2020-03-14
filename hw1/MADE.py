@@ -5,18 +5,13 @@ from tensorflow_core.python.keras.layers import Dense
 from utils import gather_nd, tf_log_to_base_n
 
 
-def sample_unit_numbers(n_units, min_n, D, seed=100):
+def sample_unit_numbers(n_units, min_n, D):
     """
     D is number of random vars in the outputs of the whole model
     Sample each unit's number (the max number of inputs) from 1 to D-1
     n_units in this layer
     min_n is the lowest number to use, avoids disconnected units
     """
-    np.random.seed(seed)
-    rep = int(np.ceil(n_units / ((D - 1))))
-    layer_units = np.repeat(np.arange(min_n, D), rep)[:n_units]
-    return layer_units
-    np.random.seed(seed)
     # np upperbound excluded
     return np.random.randint(min_n, D, size=n_units)
 
@@ -93,7 +88,11 @@ class MADELayer(Dense):
 
     def build(self, input_shape):
         super().build(input_shape)
-        self.mask = get_mask_made(self.prev_unit_numbers, self.unit_numbers)
+        # self.mask = get_mask_made(self.prev_unit_numbers, self.unit_numbers)
+        # TODO: trying alternate made masking from pixel-cnn github
+        nx, ny = self.kernel.shape
+        self.mask = np.ones((nx, ny))
+        self.mask[:nx // 2, :ny // 2] = 0
 
     def call(self, inputs, **kwargs):
         # mask kernel for internal op, but then return to copy of kernel after for learning

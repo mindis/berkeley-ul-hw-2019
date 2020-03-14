@@ -53,7 +53,12 @@ def made(x, aux, nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
     for i, h in enumerate(hidden):
         activation = tf.nn.relu if i < nrof_layers else None
         xc = tf.concat([aux, x], -1)
-        x = DenseMasked(h, masks[i], activation=activation)(xc)
+        # TODO: trying alternate made masking from pixel-cnn github
+        nx, ny = masks[i].shape
+        mask = np.ones((nx, ny))
+        mask[:nx // 2, :ny // 2] = 0
+
+        x = DenseMasked(h, masks, activation=activation)(xc)
     return x
 
 

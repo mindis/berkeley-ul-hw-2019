@@ -258,7 +258,8 @@ Not solved it
 Have got my pixelcnn then DS' MADE working on debug
 Tried on main data
 Good loss 0.11, but v poor samples, all green
-Think this maybe to do with masking?
+Think this maybe to do with masking? As it can get low loss by seeing other pixels but when
+sampling these are zeros so poor samples
 Or maybe bc of the order of the concat seems wrong in DS code?
 
 Tried with factorised=True instead
@@ -267,9 +268,30 @@ So tried with lower LR, factorised=True
 Loss gets to 0.2 then a bit jumpy and doesnt seem to get below that, samples better than with factorised=False
 bc they're not all green but not resembling the right digit shapes yet
 
+Tried same as experiment that worked with my PixelCNN and DS MADE (factroised, lower LR) with my MADE
+No, loss to 0.6 after 2k
+
+Tried other way of concat aux and x when pass to MADE with DS MADE and my pixelCNN
+With factorised = True
+    Loss gets really low, 0.04 in 1k but samples v poor
+With fac=False
+    Same problem
+So I guess this is wrong masking due to the low loss but poor samples? It cheats and looks at
+other pixel values but then when we sample the other pixel values are random / zero
+
+Trying my code with another MADE
+So this was the DS MADE adapted code but with masking from someone else, with my pixelCNN
+https://github.com/nicklashansen/pixelcnn-made
+This MADE masking is weird basically 0s out the top left corner?
+Loss comes along well to 0.1, samples not great but best of all the pixelCNN MADE
+
+Tried all my code with just the new MADE masking
+Loss to 0 but all green - think the mask doesn't match with my pixelCNN
+So issue could be my supporting MADE code (since masks and pixelCNN same here)
+
 * Debug new pixelcnn-made
-    * try some of DS code
-        with my pixelCNN and his MADE and vice versa
+    * Look MADE supporting code cf DS (when both use non-DS other guy masks) then look at MADE masking
+- Factorised=True seems important, not sure why?
 * Clean up Ds and Ns etc
 * Run gradient thing part 3
 * Sort README
