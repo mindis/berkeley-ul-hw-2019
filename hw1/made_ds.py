@@ -64,10 +64,12 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         masks = get_masks(self.n_hidden_units, self.n_layers, self.D, self.N * self.D, self.N)
         hidden = [self.n_hidden_units] * self.n_layers + [self.D * self.N]
         self.made_layers = []
+        prev_unit_numbers = input_unit_numbers(self.D, self.N, self.N * self.D)
         for i, h in enumerate(hidden):
             activation = tf.nn.relu if i < self.n_layers else None
             # self.made_layers.append(DenseMasked(h, masks[i], activation=activation))
-            self.made_layers.append(MADELayer(h, masks[i], activation=activation))
+            self.made_layers.append(MADELayer(h, prev_unit_numbers, self.D, activation=activation, is_output=i<self.n_layers))
+            prev_unit_numbers = self.made_layers[-1].unit_numbers
 
     def call(self, inputs, training=None, mask=None):
         x_made = tf.reshape(tf.one_hot(tf.cast(inputs, tf.int32), depth=4), (-1, self.N * self.D))
@@ -75,9 +77,11 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         aux = self.pixelCNN(x_pixelcnn)
         aux_rshp = tf.reshape(aux, (-1, self.N * self.D))
         x = x_made
+        x = tf.concat([x, aux_rshp], -1)
         for layer in self.made_layers:
-            xc = tf.concat([aux_rshp, x], -1)
-            x = layer(xc)
+            # xc = tf.concat([aux_rshp, x], -1)
+            # x = layer(xc)
+            x = layer(x)
         y_made_rshp = tf.reshape(x, (-1, self.H, self.W, self.C, self.N))
         return y_made_rshp
 

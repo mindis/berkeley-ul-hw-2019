@@ -288,6 +288,9 @@ With DS masking in my MADE and PixelCNN still gets stuck at 0.5 loss and samples
 -> So could be some other supporting code, look for differences
 With my masking (random) and my MADE and pixelCNN same result, 0.5 loss
 
+Tried DS MADE code with my pixelCNN layers and masks
+** TODO Running
+
 * Look at differences between my pixelcnn with ds made and my pixelCNN made
 * Try my new MADE with pure MADE
 * Debug new pixelcnn-made
