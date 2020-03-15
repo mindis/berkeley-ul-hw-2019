@@ -293,17 +293,21 @@ Loss stuck around 0.35-0.4 and all green samples
 So it is my MADE layers that's the issue and/or supporting code
 One other diff here is that changed to not aux in each layer only concat to inputs to MADE
 
-Adapted DS masking to be more like mine, and to not have aux input each layer
-Tried running DS adapted masking to see if the masking or the aux input each layer was the issue
 Only difference with my masking seems to be that the aux input on mine has unit numbers ie some are masked whereas
 with DS code they all unmasked
+
+DS support code with my MADE layers and pixelcNN and to not have aux input each layer
 Seems to have same issue, 0.35 loss
 .
 But try with aux and x concat other way bc this is important with masking
 Better than above, loss to 0.15 and decent samples
 -> Look into this on my pixel CNN MADE and why?
 
-* Try with aux and x concat other way
+My PixelCNN + MADE with aux and x concat other way
+Ran this twice and had 0.5 loss and bad samples still - find the bug!
+Given above experiment the only thing left is the MADE suppporting code since the MADE layer and my
+pixelCNN are used in DS code now
+
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN
 * remove ds code and remove ordered=True from MADE

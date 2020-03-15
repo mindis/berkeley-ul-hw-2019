@@ -45,7 +45,7 @@ def input_unit_numbers(D, N, N_aux):
     unit_numbers = ordered_unit_number(D, N)
     if N_aux > 0:
         aux_unit_numbers = sample_unit_numbers(N_aux, 1, D)
-        unit_numbers = np.hstack([unit_numbers, aux_unit_numbers])
+        unit_numbers = np.hstack([aux_unit_numbers, unit_numbers])
     return unit_numbers
 
 
@@ -134,32 +134,19 @@ class MADEModel(tf.keras.Model):
         # get ordered unit numbers for inputs
         in_unit_numbers = input_unit_numbers(self.D, self.N, self.N_aux)
         self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D)
-        prev_unit_numbers_aux = tf.concat([self.layer1.unit_numbers, sample_unit_numbers(self.N_aux,
-                                           min(self.layer1.unit_numbers),
-                                           self.D)], -1)
-        self.layer2 = MADELayer(self.n_hidden_units, prev_unit_numbers_aux, self.D)
+        self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D)
         # N * D outputs
         # Ordered unit numbers for output
         # -1 because the output layer is a strict inequality
         out_unit_numbers = ordered_unit_number(self.D, self.N) - 1
-        prev_unit_numbers_aux = tf.concat([self.layer2.unit_numbers, sample_unit_numbers(self.N_aux,
-                                                                                         min(self.layer2.unit_numbers),
-                                                                                         self.D)], -1)
-        self.output_layer = MADELayer(self.N * self.D, prev_unit_numbers_aux, self.D, unit_numbers=out_unit_numbers,
+        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
                                       activation=None, is_output=True)
 
     def call(self, inputs, training=None, mask=None):
-        if self.N_aux > 0:
-            x = self.layer1(inputs)
-            aux = inputs[:, -self.N_aux:]
-            x = self.layer2(tf.concat([x, aux], -1))
-            x = self.output_layer(tf.concat([x, aux], -1))
-            x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
-        else:
-            x = self.layer1(inputs)
-            x = self.layer2(x)
-            x = self.output_layer(x)
-            x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
+        x = self.layer1(inputs)
+        x = self.layer2(x)
+        x = self.output_layer(x)
+        x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
         return x_i_outputs
 
 

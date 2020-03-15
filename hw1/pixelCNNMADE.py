@@ -52,7 +52,7 @@ class PixelCNNMADEModel(Model):
         # we input the current pixel's channels one-hot to MADE
         x_one_hot = one_hot_inputs(inputs, self.D, self.N)
         # concat inputs and aux inputs for MADE
-        x = tf.concat([x_one_hot, aux_input], -1)
+        x = tf.concat([aux_input, x_one_hot], -1)
         for layer in self.made_layers:
             x = layer(x)
         x = tf.reshape(x, (-1, self.H, self.W, self.C, self.N))
