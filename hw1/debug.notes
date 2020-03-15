@@ -297,7 +297,10 @@ Adapted DS masking to be more like mine, and to not have aux input each layer
 Tried running DS adapted masking to see if the masking or the aux input each layer was the issue
 Only difference with my masking seems to be that the aux input on mine has unit numbers ie some are masked whereas
 with DS code they all unmasked
-** TODO running
+Seems to have same issue, 0.35 loss
+.
+But try with aux and x concat other way bc this is important with masking
+** TODO run DS as is! seems promising
 
 * Try DS layers with my MADE
 * Debug new pixelcnn-made

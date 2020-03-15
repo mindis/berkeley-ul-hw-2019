@@ -38,7 +38,7 @@ def get_masks(nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
         if i == 0:
             msk = m[i + 1][:, None] >= m[i][None, :]
             cx = np.ones((msk.shape[0], nrof_aux))
-            msk2 = np.concatenate((msk, cx), axis=1)
+            msk2 = np.concatenate((cx, msk), axis=1)
         else:
             msk2 = np.array(m[i + 1][:, None] >= m[i][None, :], dtype=float)
         mask += [msk2.T]
@@ -78,7 +78,7 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         aux = self.pixelCNN(x_pixelcnn)
         aux_rshp = tf.reshape(aux, (-1, self.N * self.D))
         x = x_made
-        x = tf.concat([x, aux_rshp], -1)
+        x = tf.concat([aux_rshp, x], -1)
         for layer in self.made_layers:
             # xc = tf.concat([aux_rshp, x], -1)
             # x = layer(xc)
