@@ -300,9 +300,10 @@ with DS code they all unmasked
 Seems to have same issue, 0.35 loss
 .
 But try with aux and x concat other way bc this is important with masking
-** TODO run DS as is! seems promising
+Better than above, loss to 0.15 and decent samples
+-> Look into this on my pixel CNN MADE and why?
 
-* Try DS layers with my MADE
+* Try with aux and x concat other way
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN
 * remove ds code and remove ordered=True from MADE
