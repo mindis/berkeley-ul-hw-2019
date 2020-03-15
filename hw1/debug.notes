@@ -293,6 +293,12 @@ Loss stuck around 0.35-0.4 and all green samples
 So it is my MADE layers that's the issue and/or supporting code
 One other diff here is that changed to not aux in each layer only concat to inputs to MADE
 
+Adapted DS masking to be more like mine, and to not have aux input each layer
+Tried running DS adapted masking to see if the masking or the aux input each layer was the issue
+Only difference with my masking seems to be that the aux input on mine has unit numbers ie some are masked whereas
+with DS code they all unmasked
+** TODO running
+
 * Try DS layers with my MADE
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN

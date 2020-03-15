@@ -5,14 +5,13 @@ from tensorflow_core.python.keras.layers import Dense
 from utils import gather_nd, tf_log_to_base_n
 
 
-def sample_unit_numbers(n_units, min_n, D, ordered=False):
+def sample_unit_numbers(n_units, min_n, D, ordered=True):
     """
     D is number of random vars in the outputs of the whole model
     Sample each unit's number (the max number of inputs) from 1 to D-1
     n_units in this layer
     min_n is the lowest number to use, avoids disconnected units
     """
-    # TODO: trying other masking
     if ordered:
         rep = int(np.ceil(n_units / ((D - 1))))
         layer_units = np.repeat(np.arange(min_n, D), rep)[:n_units]

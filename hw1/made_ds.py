@@ -35,13 +35,14 @@ def get_masks(nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
 
     mask = []
     for i in range(len(m) - 1):
-        msk = m[i + 1][:, None] >= m[i][None, :]
-        cx = np.ones((msk.shape[0], nrof_aux))
-        msk2 = np.concatenate((cx, msk), axis=1)
+        if i == 0:
+            msk = m[i + 1][:, None] >= m[i][None, :]
+            cx = np.ones((msk.shape[0], nrof_aux))
+            msk2 = np.concatenate((msk, cx), axis=1)
+        else:
+            msk2 = np.array(m[i + 1][:, None] >= m[i][None, :], dtype=float)
         mask += [msk2.T]
-    msk = m0[:, None] > m[-1][None, :]
-    cx = np.ones((msk.shape[0], nrof_aux))
-    msk2 = np.concatenate((cx, msk), axis=1)
+    msk2 = np.array(m0[:, None] > m[-1][None, :], dtype=float)
     mask += [msk2.T]
 
     return mask
