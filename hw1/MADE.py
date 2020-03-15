@@ -5,7 +5,7 @@ from tensorflow_core.python.keras.layers import Dense
 from utils import gather_nd, tf_log_to_base_n
 
 
-def sample_unit_numbers(n_units, min_n, D, ordered=True):
+def sample_unit_numbers(n_units, min_n, D, ordered=False):
     """
     D is number of random vars in the outputs of the whole model
     Sample each unit's number (the max number of inputs) from 1 to D-1
