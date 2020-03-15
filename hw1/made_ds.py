@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow_probability as tfp
 
 from pixelCNN import PixelCNNModel
+from MADE import sample_unit_numbers, input_unit_numbers, ordered_unit_number, get_mask_made
 
 
 class DenseMasked(tf.keras.layers.Layer):
@@ -145,3 +146,16 @@ class DS_PixelCNN_MADE:
     def forward_softmax(self, x):
         return tf.nn.softmax(self.model(x))
 
+
+if __name__ == "__main__":
+    nrof_dims, nrof_bins = 3, 4
+    nrof_units, nrof_layers = 12, 2
+    ds_masks = get_masks(nrof_units, nrof_layers, nrof_dims, 0, nrof_bins)
+    print(ds_masks[1])
+
+    order_units = ordered_unit_number(nrof_dims, nrof_bins)
+    sample_units = sample_unit_numbers(nrof_units, 1, nrof_dims, ordered=False)
+    sample_units2 = sample_unit_numbers(nrof_units, 1, nrof_dims, ordered=False)
+    print(order_units)
+    mask = get_mask_made(sample_units2, order_units, False)
+    print(mask)

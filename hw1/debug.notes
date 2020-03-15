@@ -279,6 +279,8 @@ With fac=False
 So I guess this is wrong masking due to the low loss but poor samples? It cheats and looks at
 other pixel values but then when we sample the other pixel values are random / zero
 
+Comparing DS MADE masking to mine using ordered version of sampling unit numbers all seems to be same
+Looked again at MADE paper and saw some bugs, changed code, worth running MADE and trying pixelCNN MADE again
 
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN

@@ -5,24 +5,31 @@ from tensorflow_core.python.keras.layers import Dense
 from utils import gather_nd, tf_log_to_base_n
 
 
-def sample_unit_numbers(n_units, min_n, D):
+def sample_unit_numbers(n_units, min_n, D, ordered=True):
     """
     D is number of random vars in the outputs of the whole model
     Sample each unit's number (the max number of inputs) from 1 to D-1
     n_units in this layer
     min_n is the lowest number to use, avoids disconnected units
     """
-    # np upperbound excluded
-    return np.random.randint(min_n, D, size=n_units)
+    # TODO: trying other masking
+    if ordered:
+        rep = int(np.ceil(n_units / ((D - 1))))
+        layer_units = np.repeat(np.arange(min_n, D), rep)[:n_units]
+    else:
+        # np upperbound excluded
+        layer_units = np.random.randint(min_n, D, size=n_units)
+    return layer_units
 
 
 def ordered_unit_number(D, N):
     """
     :param D: the number of RVs
     :param N: number of values each RV can take (because we one-hot it so each value of each RV is a single RV)
-    Primarily for input and output layers
+    For input and output layers
     Gives ordered units so we can sample by conditioning sequentially. Ie. the first N values will be unit number
     1 then the next N will be 2, ... the last N will be unit number D
+    This goes to unit number D as input and output go to D inclusive.
     """
     return np.repeat(np.arange(1, D+1), N)
 
@@ -43,16 +50,22 @@ def input_unit_numbers(D, N, N_aux):
     return unit_numbers
 
 
-def get_mask_made(prev_unit_numbers, unit_numbers):
+def get_mask_made(prev_unit_numbers, unit_numbers, is_output):
     """
+    is_output: true if an output layer since uses different masking.
     Gets the matrix to multiply with the weights to mask connections for MADE.
     Unit numbers are the max number of inputs that the unit can be connected to (this means inputs not units in the
     previous layer, except in first hidden layer when prev layer is the inputs)
+    Masking is different for output layers
     Returns mask (prev_units, units)
     """
     unit_masks = []
-    for prev_unit_number in prev_unit_numbers:
-        unit_masks.append(unit_numbers >= prev_unit_number)
+    if is_output:
+        for prev_unit_number in prev_unit_numbers:
+            unit_masks.append(prev_unit_number > unit_numbers)
+    else:
+        for prev_unit_number in prev_unit_numbers:
+            unit_masks.append(unit_numbers >= prev_unit_number)
     return np.array(np.stack(unit_masks), dtype=np.float32)
 
 
@@ -72,7 +85,7 @@ def one_hot_inputs(x, D, N):
 
 class MADELayer(Dense):
     def __init__(self, n_units, prev_unit_numbers, D,
-                 unit_numbers=None, activation="relu", **kwargs):
+                 unit_numbers=None, activation="relu", is_output=False, **kwargs):
         """
         n_units is the number of units in this layer
         For MADE masking:
@@ -85,14 +98,11 @@ class MADELayer(Dense):
         if unit_numbers is None:
             unit_numbers = sample_unit_numbers(n_units, np.min(prev_unit_numbers), D)
         self.unit_numbers = unit_numbers
+        self.is_output = is_output
 
     def build(self, input_shape):
         super().build(input_shape)
-        # self.mask = get_mask_made(self.prev_unit_numbers, self.unit_numbers)
-        # TODO: trying alternate made masking from pixel-cnn github
-        nx, ny = self.kernel.shape
-        self.mask = np.ones((nx, ny))
-        self.mask[:nx // 2, :ny // 2] = 0
+        self.mask = get_mask_made(self.prev_unit_numbers, self.unit_numbers, self.is_output)
 
     def call(self, inputs, **kwargs):
         # mask kernel for internal op, but then return to copy of kernel after for learning
@@ -137,7 +147,7 @@ class MADEModel(tf.keras.Model):
                                                                                          min(self.layer2.unit_numbers),
                                                                                          self.D)], -1)
         self.output_layer = MADELayer(self.N * self.D, prev_unit_numbers_aux, self.D, unit_numbers=out_unit_numbers,
-                                      activation=None)
+                                      activation=None, is_output=True)
 
     def call(self, inputs, training=None, mask=None):
         if self.N_aux > 0:
@@ -273,12 +283,12 @@ def test_masks():
     hidden_units1 = np.array([2, 1, 2, 2])
     hidden_units2 = np.array([1, 2, 2, 1])
     print(units)
-    print(get_mask_made(units, hidden_units1).T)
+    print(get_mask_made(units, hidden_units1, False).T)
     print(hidden_units1)
-    print(get_mask_made(hidden_units1, hidden_units2).T)
+    print(get_mask_made(hidden_units1, hidden_units2, False).T)
     print(hidden_units1)
     # -1 because the output layer is a strict inequality
-    print(get_mask_made(hidden_units2, units - 1).T)
+    print(get_mask_made(hidden_units2, units - 1, is_output=True).T)
 
 
 if __name__ == "__main__":
