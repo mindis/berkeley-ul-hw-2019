@@ -281,8 +281,7 @@ other pixel values but then when we sample the other pixel values are random / z
 
 
 * Debug new pixelcnn-made
-    * Try non-DS masking with the DS code and my PixelCNN (since wasn't proper try before!)
-    * Look MADE masking cf DS MADE masking
+    * Look my MADE masking cf DS MADE masking for pixelCNN
 - Factorised=True seems important, not sure why?
 * Clean up Ds and Ns etc
 * Run gradient thing part 3
