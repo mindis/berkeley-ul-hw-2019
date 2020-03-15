@@ -280,13 +280,14 @@ So I guess this is wrong masking due to the low loss but poor samples? It cheats
 other pixel values but then when we sample the other pixel values are random / zero
 
 Comparing DS MADE masking to mine using ordered version of sampling unit numbers all same WITHOUT AUX
+Comparing my masking to DS with AUX again seems same except DS uses 1's on aux ie. all unmasked and inputs the aux
+every layer
 Looked again at MADE paper and saw some bugs, changed code, worth running MADE and trying pixelCNN MADE again
 
 With DS masking in my MADE and PixelCNN still gets stuck at 0.5 loss and samples poor
 -> So could be some other supporting code, look for differences
 With my masking (random) and my MADE and pixelCNN same result, 0.5 loss
 
-* Compare my masking to DS with AUX
 * Look at differences between my pixelcnn with ds made and my pixelCNN made
 * Try my new MADE with pure MADE
 * Debug new pixelcnn-made

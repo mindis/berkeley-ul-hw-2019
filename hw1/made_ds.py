@@ -151,12 +151,18 @@ class DS_PixelCNN_MADE:
 if __name__ == "__main__":
     nrof_dims, nrof_bins = 3, 4
     nrof_units, nrof_layers = 12, 2
-    ds_masks = get_masks(nrof_units, nrof_layers, nrof_dims, 0, nrof_bins)
-    print(ds_masks[1])
+    n_aux = 5
+    ds_masks = get_masks(nrof_units, nrof_layers, nrof_dims, n_aux, nrof_bins)
 
-    order_units = ordered_unit_number(nrof_dims, nrof_bins)
-    sample_units = sample_unit_numbers(nrof_units, 1, nrof_dims, ordered=False)
-    sample_units2 = sample_unit_numbers(nrof_units, 1, nrof_dims, ordered=False)
-    print(order_units)
-    mask = get_mask_made(sample_units2, order_units, False)
-    print(mask)
+    in_units = input_unit_numbers(nrof_dims, nrof_bins, n_aux)
+    out_units = ordered_unit_number(nrof_dims, nrof_bins) - 1
+    sample_units = sample_unit_numbers(nrof_units, 1, nrof_dims, ordered=True)
+    sample_units2 = sample_unit_numbers(nrof_units, 1, nrof_dims, ordered=True)
+    my_masks = []
+    my_masks.append(get_mask_made(in_units, sample_units, False))
+    my_masks.append(get_mask_made(sample_units, sample_units2, False))
+    my_masks.append(get_mask_made(sample_units2, out_units, False))
+    for m, d in zip(my_masks, ds_masks):
+        print(m)
+        print(d)
+        print()
