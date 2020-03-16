@@ -32,9 +32,9 @@ class PixelCNNMADEModel(Model):
         Image -> PixelCNN (bs, H, W, C * N) -> Flatten -> aux
         (Image one hot, aux) -> MADE (D variables)
         """
-        self.pixelcnn_layers = [PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised, flat=True)]
+        self.pixelcnn_model = PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised, flat=True)
         # we have auxiliary variables of the flattened image shape
-        self.made_layers = [MADEModel(self.D, self.N, self.n_hidden_units, N_aux=self.D*self.N)]
+        self.made_model = MADEModel(self.D, self.N, self.n_hidden_units, N_aux=self.D*self.N)
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
@@ -43,8 +43,7 @@ class PixelCNNMADEModel(Model):
         """
         x = inputs
         # get pixelCNN outputs
-        for layer in self.pixelcnn_layers:
-            x = layer(x)
+        x = self.pixelcnn_model(x)
         # we input the pixelCNN outputs as auxiliary variables to MADE
         # reshape such that each pixel is a data point in a batch of size (n_images_in_batch * image_size_flat)
         # each pixel is then passed through MADE
@@ -53,8 +52,7 @@ class PixelCNNMADEModel(Model):
         x_one_hot = one_hot_inputs(inputs, self.D, self.N)
         # concat inputs and aux inputs for MADE
         x = tf.concat([aux_input, x_one_hot], -1)
-        for layer in self.made_layers:
-            x = layer(x)
+        x = self.made_model(x)
         x = tf.reshape(x, (-1, self.H, self.W, self.C, self.N))
         return x
 

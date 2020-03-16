@@ -308,6 +308,9 @@ Ran this twice and had 0.5 loss and bad samples still - find the bug!
 Given above experiment the only thing left is the MADE suppporting code since the MADE layer and my
 pixelCNN are used in DS code now
 
+Found another bug in mine, worth rerun
+
+
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN
 * remove ds code and remove ordered=True from MADE

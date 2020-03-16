@@ -138,7 +138,7 @@ class MADEModel(tf.keras.Model):
         # N * D outputs
         # Ordered unit numbers for output
         # -1 because the output layer is a strict inequality
-        out_unit_numbers = ordered_unit_number(self.D, self.N) - 1
+        out_unit_numbers = ordered_unit_number(self.D, self.N)
         self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
                                       activation=None, is_output=True)
 
