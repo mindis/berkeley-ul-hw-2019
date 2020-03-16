@@ -308,8 +308,29 @@ Ran this twice and had 0.5 loss and bad samples still - find the bug!
 Given above experiment the only thing left is the MADE suppporting code since the MADE layer and my
 pixelCNN are used in DS code now
 
-Found another bug in mine, worth rerun
+Tried DS code with my MADEModel and PixelCNN Model in DSPixelCNNMADEModel
+if this doesn't work then it's something in MADE Model
+if it does then it points to the issue in supporting code
+Ok, so it didnt work therefore I think best place to look is in MADEModel
+.
+Ran my code with DS_MADEModel just to confirm as this uses MADELayer but not MADEModel
+This didnt work so I think there's multiple issues
+.
+Ran DS code with my full PixelCNNMADEModel, so it's just DS supporting code
+0.7 loss
+->
+So it's something in my PixelCNNMADEModel or MADEModel
+It's NOT supporting code or MADELayer
 
+Trying MADEModel without passing output unit numbers as seems to be one difference in MADEModel and DS
+No
+Trying with flat=False in pixelCNNModel within PixelCNNMADEModel
+No
+
+Trying DS code again wtih my MADELayer and PixelCNNModel as a baseline
+Doesn't work now :(
+Swap input unit numebrs the otehr way in mask?
+Ordered=False in sample_unit_numebrs? or all ones for aux input?
 
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN

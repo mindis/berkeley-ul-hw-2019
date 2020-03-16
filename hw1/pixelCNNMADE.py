@@ -32,7 +32,7 @@ class PixelCNNMADEModel(Model):
         Image -> PixelCNN (bs, H, W, C * N) -> Flatten -> aux
         (Image one hot, aux) -> MADE (D variables)
         """
-        self.pixelcnn_model = PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised, flat=True)
+        self.pixelcnn_model = PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised)#, flat=True)
         # we have auxiliary variables of the flattened image shape
         self.made_model = MADEModel(self.D, self.N, self.n_hidden_units, N_aux=self.D*self.N)
         super().build(input_shape)
