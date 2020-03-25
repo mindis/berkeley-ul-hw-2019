@@ -6,50 +6,53 @@ from pixelCNN import PixelCNNModel
 from MADE import sample_unit_numbers, input_unit_numbers, ordered_unit_number, get_mask_made, MADELayer
 
 #
-# class DenseMasked(tf.keras.layers.Layer):
-#     def __init__(self, nrof_units, mask, activation=None, **kwargs):
-#         super(DenseMasked, self).__init__(**kwargs)
-#         self._mask = mask
-#         self._activation = activation
-#         self.nrof_units = nrof_units
-#
-#     def build(self, input_shape):
-#         nrof_inputs = input_shape[1]
-#         self._kernel = tf.Variable(tf.initializers.glorot_normal()((nrof_inputs, self.nrof_units)), dtype=tf.float32, trainable=True)
-#         self._bias = tf.Variable(tf.initializers.zeros()((self.nrof_units,)), dtype=tf.float32, trainable=True)
-#
-#     def call(self, inputs, **kwargs):
-#         y = tf.tensordot(inputs, self._kernel * self._mask, 1) + self._bias
-#         y = self._activation(y) if self._activation else y
-#         return y
-#
-#
-# def get_masks(nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins):
-#     m = []
-#     m0 = np.repeat(np.arange(nrof_dims), nrof_bins)
-#     m += [m0]
-#     for i in range(nrof_layers):
-#         rep = int(np.ceil(nrof_units / ((nrof_dims - 1))))
-#         mx = np.repeat(np.arange(nrof_dims - 1), rep)[:nrof_units]
-#         m += [mx]
-#
-#     mask = []
-#     for i in range(len(m) - 1):
-#         if i == 0:
-#             msk = m[i + 1][:, None] >= m[i][None, :]
-#             cx = np.ones((msk.shape[0], nrof_aux))
-#             msk2 = np.concatenate((cx, msk), axis=1)
-#         else:
-#             msk2 = np.array(m[i + 1][:, None] >= m[i][None, :], dtype=float)
-#         mask += [msk2.T]
-#     msk2 = np.array(m0[:, None] > m[-1][None, :], dtype=float)
-#     mask += [msk2.T]
-#
-#     return mask
-#
+class DenseMasked(tf.keras.layers.Layer):
+    def __init__(self, nrof_units, mask, activation=None, **kwargs):
+        super(DenseMasked, self).__init__(**kwargs)
+        self._mask = mask
+        self._activation = activation
+        self.nrof_units = nrof_units
+
+    def build(self, input_shape):
+        nrof_inputs = input_shape[1]
+        self._kernel = tf.Variable(tf.initializers.glorot_normal()((nrof_inputs, self.nrof_units)), dtype=tf.float32, trainable=True)
+        self._bias = tf.Variable(tf.initializers.zeros()((self.nrof_units,)), dtype=tf.float32, trainable=True)
+
+    def call(self, inputs, **kwargs):
+        y = tf.tensordot(inputs, self._kernel * self._mask, 1) + self._bias
+        y = self._activation(y) if self._activation else y
+        return y
+
+
+def get_masks(nrof_units, nrof_layers, nrof_dims, nrof_aux, nrof_bins, aux_all):
+    m = []
+    m0 = np.repeat(np.arange(nrof_dims), nrof_bins)
+    m += [m0]
+    for i in range(nrof_layers):
+        rep = int(np.ceil(nrof_units / ((nrof_dims - 1))))
+        mx = np.repeat(np.arange(nrof_dims - 1), rep)[:nrof_units]
+        m += [mx]
+
+    mask = []
+    for i in range(len(m) - 1):
+        if i == 0 or aux_all:
+            msk = m[i + 1][:, None] >= m[i][None, :]
+            cx = np.ones((msk.shape[0], nrof_aux))
+            msk2 = np.concatenate((cx, msk), axis=1)
+        else:
+            msk2 = np.array(m[i + 1][:, None] >= m[i][None, :], dtype=float)
+        mask += [msk2.T]
+    msk2 = np.array(m0[:, None] > m[-1][None, :], dtype=float)
+    if aux_all:
+        cx = np.ones((msk2.shape[0], nrof_aux))
+        msk2 = np.concatenate((cx, msk2), axis=1)
+    mask += [msk2.T]
+
+    return mask
+
 
 class DS_PixelCNN_MADE_Model(tf.keras.Model):
-    def __init__(self, H, W, C, N, D, n_hidden_units=124, n_layers=2):
+    def __init__(self, H, W, C, N, D, n_hidden_units=132, n_layers=2):
         super(DS_PixelCNN_MADE_Model, self).__init__()
         self.H = H
         self.W = W
@@ -58,16 +61,17 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         self.D = D
         self.n_hidden_units = n_hidden_units
         self.n_layers = n_layers
+        self.aux_all = False
 
     def build(self, input_shape):
         self.pixelCNN = PixelCNNModel(self.H, self.W, self.C, self.N, True)
         # made
-        # masks = get_masks(self.n_hidden_units, self.n_layers, self.D, self.N * self.D, self.N)
+        masks = get_masks(self.n_hidden_units, self.n_layers, self.D, self.N * self.D, self.N, self.aux_all)
         hidden = [self.n_hidden_units] * self.n_layers + [self.D * self.N]
         self.made_layers = []
         prev_unit_numbers = input_unit_numbers(self.D, self.N, self.N * self.D)
         for i, h in enumerate(hidden):
-            activation = "relu" if i < self.n_layers else None
+            activation = tf.nn.relu if i < self.n_layers else None
             # self.made_layers.append(DenseMasked(h, masks[i], activation=activation))
             self.made_layers.append(MADELayer(h, prev_unit_numbers, self.D, activation=activation, is_output=i<self.n_layers))
             prev_unit_numbers = self.made_layers[-1].unit_numbers
@@ -78,10 +82,11 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         aux = self.pixelCNN(x_pixelcnn)
         aux_rshp = tf.reshape(aux, (-1, self.N * self.D))
         x = x_made
-        x = tf.concat([aux_rshp, x], -1)
+        if not self.aux_all:
+            x = tf.concat([aux_rshp, x], -1)
         for layer in self.made_layers:
-            # xc = tf.concat([aux_rshp, x], -1)
-            # x = layer(xc)
+            if self.aux_all:
+                x = tf.concat([aux_rshp, x], -1)
             x = layer(x)
         y_made_rshp = tf.reshape(x, (-1, self.H, self.W, self.C, self.N))
         return y_made_rshp

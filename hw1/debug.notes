@@ -327,10 +327,16 @@ No
 Trying with flat=False in pixelCNNModel within PixelCNNMADEModel
 No
 
-Trying DS code again wtih my MADELayer and PixelCNNModel as a baseline
-Doesn't work now :(
-Swap input unit numebrs the otehr way in mask?
-Ordered=False in sample_unit_numebrs? or all ones for aux input?
+Debugging from DS code then integrating mine
+Seem to have DS code working
+
+Tried DS with aux only in input layer and didn't really get there
+.
+Tried again with more units on MADE layers (132)
+No, but maybe not a big enough change for noticeable difference
+
+Running my code as is, if it doesnt work try changing some hparams
+LR, n units etc.
 
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN

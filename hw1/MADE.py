@@ -44,7 +44,8 @@ def input_unit_numbers(D, N, N_aux):
     """
     unit_numbers = ordered_unit_number(D, N)
     if N_aux > 0:
-        aux_unit_numbers = sample_unit_numbers(N_aux, 1, D)
+        # TODO: aux_unit_numbers = sample_unit_numbers(N_aux, 1, D)
+        aux_unit_numbers = np.ones(N_aux)
         unit_numbers = np.hstack([aux_unit_numbers, unit_numbers])
     return unit_numbers
 
@@ -137,7 +138,6 @@ class MADEModel(tf.keras.Model):
         self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D)
         # N * D outputs
         # Ordered unit numbers for output
-        # -1 because the output layer is a strict inequality
         out_unit_numbers = ordered_unit_number(self.D, self.N)
         self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
                                       activation=None, is_output=True)
