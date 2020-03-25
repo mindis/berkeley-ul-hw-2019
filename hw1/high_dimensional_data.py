@@ -69,6 +69,7 @@ def train_model(X_train, X_test, model, training_logger, n_epochs=5, bs=64, log_
         training_logger.add_val(i, val_logprob)
         print()
 
+
 def eval_model(model, training_logger):
     print("Plotting and sampling.")
     training_logger.plot(ymax=2.5)

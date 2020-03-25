@@ -338,6 +338,10 @@ No, but maybe not a big enough change for noticeable difference
 Running my code as is, if it doesnt work try changing some hparams
 LR, n units etc.
 
+Looking at this other guy's code too https://github.com/ikrets/CS294-158-homeworks/blob/master/1/HW1_3_25epochs.ipynb
+
+* Look at embeddings from pixelCNN that are input as aux
+
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN
 * remove ds code and remove ordered=True from MADE
