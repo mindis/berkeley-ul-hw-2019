@@ -1,3 +1,5 @@
+import os
+
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
@@ -237,8 +239,8 @@ def run():
     softmaxed = tf.nn.softmax(made_out.units, axis=-1)
 
     unreduced_loss = tf.nn.softmax_cross_entropy_with_logits(tf.one_hot(x_ph, depth=4),
-                                                                made_out.units,
-                                                                axis=-1) * np.log2(np.e)
+                                                             made_out.units,
+                                                             axis=-1) * np.log2(np.e)
     loss = tf.reduce_mean(unreduced_loss)
 
     global_step = tf.compat.v1.train.get_or_create_global_step()
@@ -265,39 +267,48 @@ def run():
     train_losses = []
     val_losses = []
 
+    model_name = "Ikrets_PixCNNMADE"
+    log_dir = os.path.relpath("logs/{}".format(model_name))
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
 
     run = 0
     run += 1
 
     test_every = 10
-    sample_every = 10
+    sample_every = 50
     n_epochs = 3
 
     for e in range(n_epochs):
         for i, batch in enumerate(train_iter):
-            _, loss_result, step = sess.run([train_step, loss, global_step],
-                                            {x_ph: batch})
-            print('\rEpoch {}, step {}\ttrain_loss: {}'.format(
-                i, step, loss_result), end='')
+            _, loss_result = sess.run([train_step, loss],
+                                      {x_ph: batch})
+            print('Epoch {}, batch {} train_loss: {:.3f}'.format(
+                e, i, loss_result))
             train_losses.append(loss_result)
-            if i % sample_every:
+            if i % sample_every == 0:
+                print("Sampling.")
                 plt.figure(figsize=(12, 12))
                 img = sample_image(16, sess, softmaxed, x_ph)
 
                 for k in range(4):
                     for l in range(4):
                         plt.subplot(4, 4, 4 * k + l + 1)
-                        plt.imshow(img[4 * k + l] * 255 // 3)
+                        plt.imshow((img[4 * k + l] * 255. / 3).astype(np.uint8), cmap="gray")
                         plt.axis('off')
                         plt.grid(False)
                         plt.title(loss_result)
-                plt.show()
-            if i % test_every:
-                for test_batch in sess.run(test_iter):
+                plt.savefig(os.path.join(log_dir, "{}-{}.svg".format(e, i)))
+                plt.draw()
+                plt.pause(0.001)
+            if i % test_every == 0:
+                vals = []
+                for test_batch in test_iter:
                     v = sess.run(val_loss_update,
-                             {x_ph: test_batch})
-                    print('\nEpoch {}\t val_loss: {}'.format(i, v))
+                                 {x_ph: test_batch})
                     val_losses.append(v)
+                    vals.append(v)
+                print('Epoch {} val_loss: {:.3f}'.format(e, np.mean(vals)))
 
 
 if __name__ == "__main__":
