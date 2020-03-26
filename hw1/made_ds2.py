@@ -1,7 +1,7 @@
 import os
 
 import tensorflow as tf
-import tensorflow_probability as tfpZ
+import tensorflow_probability as tfp
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -99,12 +99,11 @@ class MadeInput(tf.keras.layers.Layer):
     def build(self, input_shape):
         self.width = input_shape[1]
         self.height = input_shape[2]
-        self.D = input_shape[3]
 
     def call(self, inputs, **kwargs):
         units = tf.reshape(
             tf.one_hot(tf.cast(inputs, tf.int32), depth=self.depth, dtype=tf.float32),
-                shape = (tf.shape(inputs)[0],
+                shape = (-1,
                          self.width,
                          self.height,
                          self.depth * self.D))
@@ -181,43 +180,41 @@ class MadeOutput(tf.keras.layers.Layer):
         self.m = np.repeat(np.arange(self.D), self.depth)
 
     def build(self, input_shape):
-        self.width = input_shape[0][1]
-        self.height = input_shape[0][2]
+        self.width = input_shape[1][1]
+        self.height = input_shape[1][2]
         self.weight_mask = self.m[:, np.newaxis] > self.prev_units[np.newaxis, :]
-        self.W = tf.compat.v1.get_variable("W", shape=(self.width,
+        self.W = tf.Variable(tf.initializers.glorot_normal()((self.width,
                                                        self.height,
                                                        self.D * self.depth,
-                                                       input_shape[0][-1]))
-        self.b = tf.compat.v1.get_variable("b", shape=(self.width,
+                                                       input_shape[1][-1])))
+        self.b = tf.Variable(tf.initializers.glorot_normal()((self.width,
                                                        self.height,
-                                                       self.D * self.depth))
+                                                       self.D * self.depth)))
 
         self.direct_mask = np.repeat(np.tril(np.ones(self.D), -1), self.depth).reshape((self.D, -1))
         self.direct_mask = np.repeat(self.direct_mask, self.depth, axis=0)
-        self.A = tf.compat.v1.get_variable("A", shape=(self.width,
+        self.A = tf.Variable(tf.initializers.glorot_normal()((self.width,
                                                        self.height,
                                                        self.D * self.depth,
-                                                       self.D * self.depth))
+                                                       self.D * self.depth)))
 
     def call(self, inputs, **kwargs):
-        # expects input (inputs, aux)
-        inputs, aux = inputs
+        # expects input (res, inputs, aux)
+        res, inputs, aux = inputs
         self.units = tf.einsum('whij,bwhj->bwhi',
                                self.W * self.weight_mask,
                                inputs) + self.b
-        # self.units += tf.einsum('whij,bwhj->bwhi',
-        #                         self.A * self.direct_mask,
-        #                         res_from_first_layer)
+        self.units += tf.einsum('whij,bwhj->bwhi',
+                                self.A * self.direct_mask,
+                                res)
 
-        self.unconnected_W = tf.compat.v1.get_variable('unconnected_W',
-                                             shape=(self.width,
+        self.unconnected_W = tf.Variable(tf.initializers.glorot_normal()((self.width,
                                                     self.height,
                                                     self.depth,
-                                                    aux.shape[-1]))
-        self.unconnected_b = tf.compat.v1.get_variable('unconnected_b',
-                                             shape=(self.width,
+                                                    aux.shape[-1])))
+        self.unconnected_b = tf.Variable(tf.initializers.glorot_normal()((self.width,
                                                     self.height,
-                                                    self.depth))
+                                                    self.depth)))
         self.unconnected_out = tf.einsum('whij,bwhj->bwhi',
                                          self.unconnected_W,
                                          aux) + self.unconnected_b
@@ -244,13 +241,13 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         self.Made_layers.append(MadeOutput(self.Made_layers[0].m, self.Made_layers[-1].m, 3, 4))
 
     def call(self, inputs, training=None, mask=None):
-        x = tf.cast(inputs, tf.float32) * 1./3.
-        x = self.pixelCNN(x)
+        inputs = tf.cast(inputs, tf.float32)
+        x = self.pixelCNN(inputs * 1./3.)
         aux = tf.keras.activations.relu(x)
-        x = aux
-        for layer in self.Made_layers[:-1]:
-            x = layer(x)
-        x = self.Made_layers[-1]((x, aux))
+        res = self.Made_layers[0](inputs)
+        x = res
+        x = self.Made_layers[1](x)
+        x = self.Made_layers[2]((res, x, aux))
         return x
 
 

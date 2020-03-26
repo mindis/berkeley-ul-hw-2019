@@ -341,10 +341,12 @@ LR, n units etc.
 Looking at this other guy's code too https://github.com/ikrets/CS294-158-homeworks/blob/master/1/HW1_3_25epochs.ipynb
 Adapted his to keras model to fit my training code
 
-* Try ikrets with my pixelCNN then simplify and compare / debug
-* Look at embeddings from pixelCNN that are input as aux
-* Aux input to the unconnected unit in final layer MADE
+* Try ikrets with my pixelCNN then simplify and ablation test to compare / debug
+* print intermediary values in yours, adapted and git version of ikrets
+* try get yours to train somewhat then debug and try some tricks eg.
 * relu after pixelCNN
+* Look at embeddings from pixelCNN that are input as aux
+* Some res connections in MADE eg. Aux input to the unconnected unit in final layer MADE
 
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN
