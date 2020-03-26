@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from made_ds import DS_PixelCNN_MADE
+from made_ds2 import DS_PixelCNN_MADE
 from pixelCNN import PixelCNN, display_image_grid, plot_image
 from pixelCNNMADE import PixelCNNMADE
 from utils import TrainingLogger

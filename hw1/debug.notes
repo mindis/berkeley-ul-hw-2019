@@ -339,8 +339,12 @@ Running my code as is, if it doesnt work try changing some hparams
 LR, n units etc.
 
 Looking at this other guy's code too https://github.com/ikrets/CS294-158-homeworks/blob/master/1/HW1_3_25epochs.ipynb
+Adapted his to keras model to fit my training code
 
+* Try ikrets with my pixelCNN then simplify and compare / debug
 * Look at embeddings from pixelCNN that are input as aux
+* Aux input to the unconnected unit in final layer MADE
+* relu after pixelCNN
 
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN
