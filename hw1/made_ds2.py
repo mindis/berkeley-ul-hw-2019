@@ -244,10 +244,14 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         inputs = tf.cast(inputs, tf.float32)
         x = self.pixelCNN(inputs * 1./3.)
         aux = tf.keras.activations.relu(x)
+        tf.print("Aux")
+        tf.print(aux[0, 0])
         res = self.Made_layers[0](inputs)
         x = res
         x = self.Made_layers[1](x)
         x = self.Made_layers[2]((res, x, aux))
+        tf.print("Output")
+        tf.print(x[0, 0, 0])
         return x
 
 

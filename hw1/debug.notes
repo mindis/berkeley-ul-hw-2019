@@ -340,8 +340,8 @@ LR, n units etc.
 
 Looking at this other guy's code too https://github.com/ikrets/CS294-158-homeworks/blob/master/1/HW1_3_25epochs.ipynb
 Adapted his to keras model to fit my training code
+Ran with my pixelCNN and ikrets' MADE on top, works fine so definitely something in the MADE part
 
-* Try ikrets with my pixelCNN then simplify and ablation test to compare / debug
 * print intermediary values in yours, adapted and git version of ikrets
 * try get yours to train somewhat then debug and try some tricks eg.
 * relu after pixelCNN
