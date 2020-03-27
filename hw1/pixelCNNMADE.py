@@ -43,7 +43,8 @@ class PixelCNNMADEModel(Model):
         """
         x = inputs
         # get pixelCNN outputs
-        x = self.pixelcnn_model(x)
+        x = self.pixelcnn_model(tf.cast(inputs, tf.float32) / self.N)
+        x = tf.nn.relu(x)
         # we input the pixelCNN outputs as auxiliary variables to MADE
         # reshape such that each pixel is a data point in a batch of size (n_images_in_batch * image_size_flat)
         # each pixel is then passed through MADE
@@ -59,7 +60,7 @@ class PixelCNNMADEModel(Model):
 
 # overwrite MADE
 class PixelCNNMADE(MADE):
-    def __init__(self, H=28, W=28, C=3, N=4, D=3, learning_rate=10e-4, n_hidden_units=124):
+    def __init__(self, H=28, W=28, C=3, N=4, D=28*28*3, learning_rate=10e-4, n_hidden_units=124):
         """
         H, W, C image shape: height, width, channels
         N is number of values per variable

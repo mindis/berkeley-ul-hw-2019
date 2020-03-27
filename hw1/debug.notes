@@ -352,11 +352,14 @@ Now it gets to 0.1 loss
 So difference to adapted layers in my training loop is something in the model or training code
 Ikrets code works with my pixelCNN and my training loop, so the bug is in the MADE!
 
+Ikrets seems to be MADE output the whole image not just the current pixel
+
+* first try get basic working even if bad, then try improve with tricks
 * print intermediary values in yours, adapted and git version of ikrets
-* try get yours to train somewhat then debug and try some tricks eg.
 * relu after pixelCNN
 * Look at embeddings from pixelCNN that are input as aux
 * Some res connections in MADE eg. Aux input to the unconnected unit in final layer MADE
+* aux input each layer
 
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN

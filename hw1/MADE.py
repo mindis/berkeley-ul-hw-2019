@@ -190,7 +190,7 @@ class MADE:
         """
         x_i_outputs = self.forward_logits(x)
         # softmax and gather units of interest
-        pxis = tf.nn.softmax(x_i_outputs)
+        pxis = tf.nn.softmax(x_i_outputs, axis=-1)
         return pxis
 
     @tf.function

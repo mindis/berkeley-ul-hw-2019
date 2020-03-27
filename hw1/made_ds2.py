@@ -8,88 +8,6 @@ import matplotlib.pyplot as plt
 from pixelCNN import PixelCNNModel
 
 
-def mask(size, type_A):
-    m = np.zeros((size, size), dtype=np.float32)
-    m[:size // 2, :] = 1
-    m[size // 2, :size // 2] = 1
-    if not type_A:
-        m[size // 2, size // 2] = 1
-    return m
-
-
-class ConvMasked(tf.keras.layers.Layer):
-    def __init__(self, name, size, in_channels=128, out_channels=128, type_A=False, **kwargs):
-        super().__init__(name, **kwargs)
-        self._name = name
-        self._size = size
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.type_A = type_A
-
-    def build(self, input_shape, **kwargs):
-        self.conv_filter = tf.Variable(tf.initializers.glorot_normal()((self._size, self._size, self.in_channels, self.out_channels)),
-            name=self._name + '_filter', trainable=True)
-        self.conv_bias = tf.Variable(tf.initializers.glorot_normal()((input_shape[1], input_shape[2], self.out_channels)),
-                                     name=self._name + '_bias',
-                                    trainable=True)
-
-    def call(self, inputs, **kwargs):
-        masked_conv_filter = self.conv_filter * mask(self._size, self.type_A)[:, :, np.newaxis, np.newaxis]
-        return tf.nn.conv2d(inputs, masked_conv_filter, strides=[1, 1, 1, 1], padding='SAME', name=self._name) \
-               + self.conv_bias
-
-
-class ResBlock(tf.keras.layers.Layer):
-    def __init__(self, scope, channels=128, **kwargs):
-        super().__init__(**kwargs)
-        self.scope = scope
-        self._channels = channels
-
-    def build(self, input_shape, **kwargs):
-        self._layers = []
-        self._layers.append(tf.keras.activations.relu)
-        self._layers.append(ConvMasked('conv1x1_downsample', 1, self._channels, self._channels // 2))
-        self._layers.append(tf.keras.activations.relu)
-        self._layers.append(ConvMasked('conv3x3', 3, self._channels // 2, self._channels // 2))
-        self._layers.append(tf.keras.activations.relu)
-        self._layers.append(ConvMasked('conv1x1_upsample', 1, self._channels // 2, self._channels))
-
-    def call(self, inputs, **kwargs):
-        x = inputs
-        for layer in self._layers:
-            x = layer(x)
-        return inputs + x
-
-
-class PixelCNN(tf.keras.layers.Layer):
-    def __init__(self, channels, final_channels, **kwargs):
-        super().__init__(**kwargs)
-        self._layers = []
-        self._layers.append(ConvMasked(name='start_conv7x7', size=7, in_channels=3,
-                          out_channels=channels, type_A=True))
-
-        for i in range(12):
-            self._layers.append(ResBlock(scope='res_block_{}'.format(i+1),
-                            channels=channels))
-
-        self._layers.append(ConvMasked('final_conv3x3', size=3,
-                          in_channels=channels,
-                          out_channels=channels))
-        self._layers.append(tf.keras.activations.relu)
-        self._layers.append(ConvMasked('final_conv1x1_1', 1,
-                       in_channels=channels,
-                       out_channels=channels))
-        self._layers.append(tf.keras.activations.relu)
-        self._layers.append(ConvMasked('final_conv1x1_2', 1,
-                       in_channels=channels,
-                       out_channels=final_channels))
-
-    def call(self, inputs, **kwargs):
-        x = inputs
-        for layer in self._layers:
-            x = layer(x)
-        return x
-
 class MadeInput(tf.keras.layers.Layer):
     def __init__(self, D, depth, **kwargs):
             super().__init__(**kwargs)
@@ -145,34 +63,6 @@ class MadeHiddenWithAuxiliary(tf.keras.layers.Layer):
         x = tf.nn.relu(x)
 
         return x
-
-class MadeHidden(tf.keras.layers.Layer):
-    def __init__(self, made_prev_layer_units, D, depth, unit_count, **kwargs):
-        super().__init__(**kwargs)
-        self.D = D
-        self.depth = depth
-        self.prev_units = made_prev_layer_units
-        self.unit_count = unit_count
-        self.m = np.mod(np.arange(self.unit_count), self.D - 1)
-
-    def build(self, input_shape):
-        self.width = input_shape[1]
-        self.height = input_shape[2]
-        self.weight_mask = self.m[:, np.newaxis] >= self.prev_units[np.newaxis, :]
-        self.W = tf.Variable(tf.initializers.glorot_normal()((self.width,
-                                                              self.height,
-                                                              self.unit_count,
-                                                              input_shape[-1])), name="W")
-        self.b = tf.Variable(tf.initializers.glorot_normal()((self.width,
-                                                              self.height,
-                                                              self.unit_count)), name="b")
-
-    def call(self, inputs, **kwargs):
-        x = tf.einsum('whij,bwhj->bwhi', self.W * self.weight_mask, inputs) + self.b
-        x = tf.nn.relu(x)
-
-        return x
-
 
 class MadeOutput(tf.keras.layers.Layer):
     def __init__(self, in_units, made_prev_layer_units, D, depth, **kwargs):
