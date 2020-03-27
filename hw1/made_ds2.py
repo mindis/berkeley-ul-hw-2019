@@ -120,23 +120,25 @@ class MadeHiddenWithAuxiliary(tf.keras.layers.Layer):
         self.m = np.mod(np.arange(self.unit_count), self.D - 1)
 
     def build(self, input_shape):
-        self.width = input_shape[1]
-        self.height = input_shape[2]
+        self.width = input_shape[0][1]
+        self.height = input_shape[0][2]
+        shape_ = input_shape[0][-1] + input_shape[1][-1]
         self.weight_mask = np.ones((self.unit_count,
-                                    input_shape[-1]),
+                                    shape_),
                                    dtype=np.bool)
         self.weight_mask[:self.m.shape[-1],
         :self.prev_units.shape[-1]] = self.m[:, np.newaxis] >= self.prev_units[np.newaxis, :]
         self.W = tf.Variable(tf.initializers.glorot_normal()((self.width,
                                              self.height,
                                              self.unit_count,
-                                             input_shape[-1])), name="W")
+                                                              shape_)), name="W")
         self.b = tf.Variable(tf.initializers.glorot_normal()((self.width,
                                         self.height,
                                         self.unit_count)), name="b")
 
     def call(self, inputs, **kwargs):
-        # expects input to be prev unit || aux
+        # expects input to be (prev unit, aux)
+        inputs = tf.concat(inputs, -1)
         x = tf.einsum('whij,bwhj->bwhi', self.W * self.weight_mask, inputs) + self.b
         x = tf.nn.relu(x)
 
@@ -248,7 +250,7 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         tf.print(aux[0, 0])
         res = self.Made_layers[0](inputs)
         x = res
-        x = self.Made_layers[1](x)
+        x = self.Made_layers[1]((x, aux))
         x = self.Made_layers[2]((res, x, aux))
         tf.print("Output")
         tf.print(x[0, 0, 0])
