@@ -347,6 +347,10 @@ Think there's a bug in the adapted layers?
 Also seems to imply there's a bug in the training code or model code for my made_ds2
 
 Changed my adapted ikrets code, wasnt sending aux to the hidden MADE layer
+Now it gets to 0.1 loss
+
+So difference to adapted layers in my training loop is something in the model or training code
+Ikrets code works with my pixelCNN and my training loop, so the bug is in the MADE!
 
 * print intermediary values in yours, adapted and git version of ikrets
 * try get yours to train somewhat then debug and try some tricks eg.

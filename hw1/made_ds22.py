@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pixelCNN import PixelCNN, PixelCNNModel
-from made_ds2 import MadeHidden, MadeHiddenWithAuxiliary, MadeInput, MadeOutput
+from made_ds2 import MadeHidden, MadeHiddenWithAuxiliary, MadeInput, MadeOutput, DS_PixelCNN_MADE_Model
 
 
 #
@@ -232,40 +232,42 @@ def run():
 
     x_ph = tf.compat.v1.placeholder(tf.int32, shape=(None, 28, 28, 3))
 
-    net = PixelCNNModel(28, 28, 3, 4, True, flat=True)(tf.cast(x_ph, tf.float32) * 1./3.)
-    net = tf.nn.relu(net)
-
     # made_input = MadeInput('made_input', x_ph, depth=4)
     # made_hidden_1 = MadeHiddenWithAuxiliary('made_h1_with_aux', made_input, net, 32)
     # made_out = MadeOutput('made_out', made_input, made_hidden_1, net)
     # softmaxed = tf.nn.softmax(made_out.units, axis=-1)
 
-    made_input = MadeInput(3, depth=4)
-    made_hidden_1 = MadeHiddenWithAuxiliary(made_input.m, 3, 4, 32)
-    made_out = MadeOutput(made_input.m, made_hidden_1.m, 3, 4)
-    made_in_t = made_input(x_ph)
-    made_hid_t = made_hidden_1((made_in_t, net))
-    made_out_t = made_out((made_in_t, made_hid_t, net))
-    softmaxed = tf.nn.softmax(made_out_t, axis=-1)
+    # net = PixelCNNModel(28, 28, 3, 4, True, flat=True)(tf.cast(x_ph, tf.float32) * 1./3.)
+    # net = tf.nn.relu(net)
+    #
+    # made_input = MadeInput(3, depth=4)
+    # made_hidden_1 = MadeHiddenWithAuxiliary(made_input.m, 3, 4, 32)
+    # made_out = MadeOutput(made_input.m, made_hidden_1.m, 3, 4)
+    # made_in_t = made_input(x_ph)
+    # made_hid_t = made_hidden_1((made_in_t, net))
+    # made_out_t = made_out((made_in_t, made_hid_t, net))
+    # softmaxed = tf.nn.softmax(made_out_t, axis=-1)
 
+    model = DS_PixelCNN_MADE_Model()
+    softmaxed = tf.nn.softmax(model(x_ph), axis=-1)
 
     unreduced_loss = tf.nn.softmax_cross_entropy_with_logits(tf.one_hot(x_ph, depth=4),
-                                                             made_out.units,
+                                                             model(x_ph),
                                                              axis=-1) * np.log2(np.e)
     loss = tf.reduce_mean(unreduced_loss)
 
     global_step = tf.compat.v1.train.get_or_create_global_step()
 
     opt = tf.compat.v1.train.AdamOptimizer(learning_rate=0.001)
-    grads_and_vars = opt.compute_gradients(loss)
-    for grad, var in grads_and_vars:
-        tf.summary.histogram(grad.name.split(':')[0], grad)
-        tf.summary.histogram(var.name.split(':')[0], var)
+    grads = opt.compute_gradients(loss)
+    # for grad, var in grads_and_vars:
+    #     tf.summary.histogram(grad.name.split(':')[0], grad)
+    #     tf.summary.histogram(var.name.split(':')[0], var)
 
-    grads, variables = zip(*grads_and_vars)
+    grads, variables = zip(*grads)
     grads, _ = tf.clip_by_global_norm(grads, 5)
-    for grad in grads:
-        tf.summary.histogram(grad.name.split(':')[0] + '_clipped', grad)
+    # for grad in grads:
+    #     tf.summary.histogram(grad.name.split(':')[0] + '_clipped', grad)
 
     train_step = opt.apply_gradients(zip(grads, variables))
 

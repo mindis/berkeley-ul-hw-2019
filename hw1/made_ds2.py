@@ -5,6 +5,8 @@ import tensorflow_probability as tfp
 import numpy as np
 import matplotlib.pyplot as plt
 
+from pixelCNN import PixelCNNModel
+
 
 def mask(size, type_A):
     m = np.zeros((size, size), dtype=np.float32)
@@ -199,7 +201,13 @@ class MadeOutput(tf.keras.layers.Layer):
                                                        self.height,
                                                        self.D * self.depth,
                                                        self.D * self.depth)))
-
+        self.unconnected_W = tf.Variable(tf.initializers.glorot_normal()((self.width,
+                                                    self.height,
+                                                    self.depth,
+                                                    input_shape[2][-1])))
+        self.unconnected_b = tf.Variable(tf.initializers.glorot_normal()((self.width,
+                                                    self.height,
+                                                    self.depth)))
     def call(self, inputs, **kwargs):
         # expects input (res, inputs, aux)
         res, inputs, aux = inputs
@@ -210,13 +218,6 @@ class MadeOutput(tf.keras.layers.Layer):
                                 self.A * self.direct_mask,
                                 res)
 
-        self.unconnected_W = tf.Variable(tf.initializers.glorot_normal()((self.width,
-                                                    self.height,
-                                                    self.depth,
-                                                    aux.shape[-1])))
-        self.unconnected_b = tf.Variable(tf.initializers.glorot_normal()((self.width,
-                                                    self.height,
-                                                    self.depth)))
         self.unconnected_out = tf.einsum('whij,bwhj->bwhi',
                                          self.unconnected_W,
                                          aux) + self.unconnected_b
@@ -236,25 +237,19 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         super().__init__(*args, **kwargs)
 
     def build(self, input_shape):
-        self.pixelCNN = PixelCNN(128, 16)
-        self.Made_layers = []
-        self.Made_layers.append(MadeInput(3, 4))
-        self.Made_layers.append(MadeHiddenWithAuxiliary(self.Made_layers[-1].m, 3, 4, 32))
-        self.Made_layers.append(MadeOutput(self.Made_layers[0].m, self.Made_layers[-1].m, 3, 4))
+        self.pixelCNN = PixelCNNModel(28, 28, 3, 4, True, True)
+        self.made_in = MadeInput(3, 4)
+        self.made_h = MadeHiddenWithAuxiliary(self.made_in.m, 3, 4, 32)
+        self.made_out = MadeOutput(self.made_in.m, self.made_h.m, 3, 4)
 
     def call(self, inputs, training=None, mask=None):
         inputs = tf.cast(inputs, tf.float32)
         x = self.pixelCNN(inputs * 1./3.)
-        aux = tf.keras.activations.relu(x)
-        tf.print("Aux")
-        tf.print(aux[0, 0])
-        res = self.Made_layers[0](inputs)
-        x = res
-        x = self.Made_layers[1]((x, aux))
-        x = self.Made_layers[2]((res, x, aux))
-        tf.print("Output")
-        tf.print(x[0, 0, 0])
-        return x
+        pixel_cnn_out = tf.nn.relu(x)
+        made_in = self.made_in(inputs)
+        made_h = self.made_h((made_in, pixel_cnn_out))
+        made_out = self.made_out((made_in, made_h, pixel_cnn_out))
+        return made_out
 
 
 class DS_PixelCNN_MADE:
@@ -282,6 +277,7 @@ class DS_PixelCNN_MADE:
         with tf.GradientTape() as tape:
             logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
+        grads, _ = tf.clip_by_global_norm(grads, 5)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob.numpy()
 
