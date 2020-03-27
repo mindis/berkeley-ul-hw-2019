@@ -59,9 +59,12 @@ class MadeHiddenWithAuxiliary(tf.keras.layers.Layer):
     def call(self, inputs, **kwargs):
         # expects input to be (prev unit, aux)
         inputs = tf.concat(inputs, -1)
+        tf.print(tf.shape(inputs))
+        tf.print(tf.shape(self.W))
         x = tf.einsum('whij,bwhj->bwhi', self.W * self.weight_mask, inputs) + self.b
+        tf.print(tf.shape(x))
+        tf.print("")
         x = tf.nn.relu(x)
-
         return x
 
 class MadeOutput(tf.keras.layers.Layer):
@@ -207,3 +210,16 @@ class DS_PixelCNN_MADE:
 
     def forward_softmax(self, x):
         return tf.nn.softmax(self.model(x))
+
+
+if __name__ == "__main__":
+    # W is width, height, units, d * depth whij # (2,2,3,4)
+    # x is bs, width, height, d * depth bwhj # (5,2,2,4)
+    # out is bs, width, height, units # (5,2,2,3)
+    # W = np.repeat(np.arange(4), 2 * 2 * 3).reshape((2,2,3,4))
+    # W = np.tile(np.arange(4*3), 2 * 2).reshape((2,2,3,4))
+    W = np.tile(np.arange(3*4*2, dtype=np.float), 2).reshape((2,2,4,3)).transpose((0,1,3,2))
+    # print(W)
+    x = np.ones((5,2,2,4))
+    print(tf.einsum('whij,bwhj->bwhi', W, x))
+    print(tf.reshape(tf.matmul(W.reshape(4*2, 2*3).T, x.reshape(5 * 2, 2*4).T), (5,2,2,3)))

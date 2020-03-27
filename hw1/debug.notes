@@ -354,6 +354,7 @@ Ikrets code works with my pixelCNN and my training loop, so the bug is in the MA
 
 Ikrets seems to be MADE output the whole image not just the current pixel
 
+* Try decipher what ikrets einsum is doing!
 * first try get basic working even if bad, then try improve with tricks
 * print intermediary values in yours, adapted and git version of ikrets
 * relu after pixelCNN
