@@ -49,7 +49,8 @@ def input_unit_numbers(D, N, N_aux):
     """
     unit_numbers = ordered_input_unit_numbers(D, N)
     if N_aux > 0:
-        aux_unit_numbers = np.ones(N_aux)
+        # aux_unit_numbers = np.ones(N_aux)
+        aux_unit_numbers = ordered_input_unit_numbers(D, N)
         unit_numbers = np.hstack([unit_numbers, aux_unit_numbers])
     return unit_numbers
 

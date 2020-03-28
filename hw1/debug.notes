@@ -362,10 +362,13 @@ This would work if have D = H*W*C variables taking on N bins, then mask the aux 
 1,1,1,2,2,2,3,3,3...,D,D,D or similar (D-1?) as then it will mask the context to only the previous
 pixels!
 But D = H*W*C >> n_units = 124 so most of the D values will not be there
-***
-* Might be worth trying again now fixed MADE bug? Need change input_unit_numbers()
+Need change input_unit_numbers()
         aux_unit_numbers = ordered_input_unit_numbers(D, N)
   and D=28*28*3
+Seemed to train to samples with noise over what would otherwise be a decent samples ??
+***
+* Might be worth trying again now fixed MADE bug?
+* Try with ordered_unit_numbers as tile not repeats or with sample unit numbers?
 __________________________________
 Or do you want:
 %% GOING THIS WAY ATM %%
