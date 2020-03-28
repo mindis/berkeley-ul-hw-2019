@@ -354,6 +354,21 @@ Ikrets code works with my pixelCNN and my training loop, so the bug is in the MA
 
 Ikrets seems to be MADE output the whole image not just the current pixel
 
+"""
+Want:
+(bs, h*w*c*n) input, but mask out one of the c's as they are a variable
+(bs, h*w*c*n) output, with some masked out from rest of net so unconditionally sampled
+This would work if have D = H*W*C variables taking on N bins, then mask the aux with unit numbers
+1,1,1,2,2,2,3,3,3...,D,D,D or similar (D-1?) as then it will mask the context to only the previous
+pixels!
+Or do you want:
+(bs*h*w, c*n) input for each pixel with prev channels masked
+(bs*h*w, c*n) output for each pixel with one channel masked out so uncond sample
+This makes sense how the pixelCNN would then be input since it's masked can just concat it
+But this limits the size of the NN layers
+%% GOING THIS WAY ATM %%
+"""
+
 * Try decipher what ikrets einsum is doing!
 * first try get basic working even if bad, then try improve with tricks
 * print intermediary values in yours, adapted and git version of ikrets

@@ -216,10 +216,24 @@ if __name__ == "__main__":
     # W is width, height, units, d * depth whij # (2,2,3,4)
     # x is bs, width, height, d * depth bwhj # (5,2,2,4)
     # out is bs, width, height, units # (5,2,2,3)
+    # (2,2,3) from (2,2*4) (2,3,2*4)
     # W = np.repeat(np.arange(4), 2 * 2 * 3).reshape((2,2,3,4))
     # W = np.tile(np.arange(4*3), 2 * 2).reshape((2,2,3,4))
-    W = np.tile(np.arange(3*4*2, dtype=np.float), 2).reshape((2,2,4,3)).transpose((0,1,3,2))
-    # print(W)
-    x = np.ones((5,2,2,4))
+    # multiply dimension j in x against each in dimension i (of length j) in W and sum
+    w,h = 2,2
+    d = 3
+    u = 4
+    b = 1
+    W = np.tile(np.arange(u*d*h, dtype=np.float), w).reshape((w,h,d,u)).transpose((0,1,3,2))
+    print(W)
+    x = np.tile(np.arange(d*w*h, dtype=np.float), b).reshape((b,w,h,d))#.transpose((0,))
+    print(x)
     print(tf.einsum('whij,bwhj->bwhi', W, x))
-    print(tf.reshape(tf.matmul(W.reshape(4*2, 2*3).T, x.reshape(5 * 2, 2*4).T), (5,2,2,3)))
+    mul = tf.tensordot(x.reshape(b, h * w*d), W.reshape(u, w*h*d), [[1],[1]])
+    print(tf.reshape(mul, (b, u)))
+
+    W[-1,-1,-1,-1] = -1
+    print(tf.einsum('whij,bwhj->bwhi', W, x))
+
+    mul = tf.tensordot(x.reshape(b, h * w*d), W.reshape(u, w*h*d), [[1],[1]])
+    print(tf.reshape(mul, (b, u)))

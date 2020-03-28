@@ -41,7 +41,6 @@ class PixelCNNMADEModel(Model):
         """
         output shape is (bs, D, N)
         """
-        x = inputs
         # get pixelCNN outputs
         x = self.pixelcnn_model(tf.cast(inputs, tf.float32) / self.N)
         x = tf.nn.relu(x)
@@ -49,22 +48,25 @@ class PixelCNNMADEModel(Model):
         # reshape such that each pixel is a data point in a batch of size (n_images_in_batch * image_size_flat)
         # each pixel is then passed through MADE
         aux_input = tf.reshape(x, (-1, self.D * self.N))
+        tf.print("Aux", aux_input[0], summarize=12)
         # we input the current pixel's channels one-hot to MADE
         x_one_hot = one_hot_inputs(inputs, self.D, self.N)
+        tf.print("X_oh", x_one_hot[0], summarize=12)
         # concat inputs and aux inputs for MADE
         x = tf.concat([aux_input, x_one_hot], -1)
         x = self.made_model(x)
+        tf.print("out", x[0])
         x = tf.reshape(x, (-1, self.H, self.W, self.C, self.N))
         return x
 
 
 # overwrite MADE
 class PixelCNNMADE(MADE):
-    def __init__(self, H=28, W=28, C=3, N=4, D=28*28*3, learning_rate=10e-4, n_hidden_units=124):
+    def __init__(self, H=28, W=28, C=3, N=4, D=3, learning_rate=10e-4, n_hidden_units=124):
         """
         H, W, C image shape: height, width, channels
         N is number of values per variable
-        D is number of variables, here it's 3 as one for each channel of the pixel
+        D is number of variables, here it's one for each channel
         """
         name = "PixelCNN-MADE"
         self.H = H
