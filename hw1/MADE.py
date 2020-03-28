@@ -5,29 +5,34 @@ from tensorflow_core.python.keras.layers import Dense
 from utils import gather_nd, tf_log_to_base_n
 
 
-def sample_unit_numbers(n_units, min_n, D, ordered=True):
+def sample_unit_numbers(n_units, min_n, D):
     """
     D is number of random vars in the outputs of the whole model
     Sample each unit's number (the max number of inputs) from 1 to D-1
     n_units in this layer
     min_n is the lowest number to use, avoids disconnected units
     """
-    if ordered:
-        rep = int(np.ceil(n_units / ((D - 1))))
-        layer_units = np.repeat(np.arange(min_n, D), rep)[:n_units]
-    else:
-        # np upperbound excluded
-        layer_units = np.random.randint(min_n, D, size=n_units)
+    # np upperbound excluded
+    return np.random.randint(min_n, D, size=n_units)
+
+
+def ordered_unit_numbers(n_units, min_n, D):
+    """
+    Ordered unit numbers for an arbitrary number of units ie. 1, 1, 1, (y times) then 2, 2, 2, (y times),
+    ..., D-1, D-1, D-1 (n_units % (D-1) (leftovers) times)
+    """
+    rep = int(np.ceil(n_units / (D - min_n)))
+    layer_units = np.repeat(np.arange(min_n, D), rep)[:n_units]
     return layer_units
 
 
-def ordered_unit_number(D, N):
+def ordered_input_unit_numbers(D, N):
     """
     :param D: the number of RVs
     :param N: number of values each RV can take (because we one-hot it so each value of each RV is a single RV)
-    For input and output layers
-    Gives ordered units so we can sample by conditioning sequentially. Ie. the first N values will be unit number
-    1 then the next N will be 2, ... the last N will be unit number D
+    For input and output layers as can only have D x N values
+    Gives ordered units so we can sample by conditioning sequentially. ie. 1, 1, 1, (N times) then 2, 2, 2, (N times),
+    ..., D, D, D (N times)
     This goes to unit number D as input and output go to D inclusive.
     """
     return np.repeat(np.arange(1, D+1), N)
@@ -40,13 +45,12 @@ def input_unit_numbers(D, N, N_aux):
     :param N_aux: number of auxiliary dimensions of input we have (other than input D * N)
     So we expect inputs of shape (bs, D * N + N_aux)
     where the first D * N are ordered unit numbers repeated N times ie. 1, 1, 1, ..., D, D, D
-    then for last N_aux inputs we have the auxiliary dimensions we have random unit numbers.
+    then for last N_aux inputs we have 1's because the aux is assumed to be conditioned on so unmasked
     """
-    unit_numbers = ordered_unit_number(D, N)
+    unit_numbers = ordered_input_unit_numbers(D, N)
     if N_aux > 0:
-        # TODO: aux_unit_numbers = sample_unit_numbers(N_aux, 1, D)
         aux_unit_numbers = np.ones(N_aux)
-        unit_numbers = np.hstack([aux_unit_numbers, unit_numbers])
+        unit_numbers = np.hstack([unit_numbers, aux_unit_numbers])
     return unit_numbers
 
 
@@ -62,7 +66,7 @@ def get_mask_made(prev_unit_numbers, unit_numbers, is_output):
     unit_masks = []
     if is_output:
         for prev_unit_number in prev_unit_numbers:
-            unit_masks.append(prev_unit_number > unit_numbers)
+            unit_masks.append(unit_numbers > prev_unit_number)
     else:
         for prev_unit_number in prev_unit_numbers:
             unit_masks.append(unit_numbers >= prev_unit_number)
@@ -96,7 +100,7 @@ class MADELayer(Dense):
         super().__init__(n_units, activation=activation, **kwargs)
         self.prev_unit_numbers = prev_unit_numbers
         if unit_numbers is None:
-            unit_numbers = sample_unit_numbers(n_units, np.min(prev_unit_numbers), D)
+            unit_numbers = ordered_unit_numbers(n_units, np.min(prev_unit_numbers), D)
         self.unit_numbers = unit_numbers
         self.is_output = is_output
 
@@ -132,13 +136,13 @@ class MADEModel(tf.keras.Model):
         self.N_aux = N_aux
 
     def build(self, input_shape, **kwargs):
-        # get ordered unit numbers for inputs
+        # get ordered unit numbers for inputs with aux
         in_unit_numbers = input_unit_numbers(self.D, self.N, self.N_aux)
         self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D)
         self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D)
         # N * D outputs
         # Ordered unit numbers for output
-        out_unit_numbers = ordered_unit_number(self.D, self.N)
+        out_unit_numbers = ordered_input_unit_numbers(self.D, self.N)
         self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
                                       activation=None, is_output=True)
 

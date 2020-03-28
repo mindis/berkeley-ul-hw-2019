@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow_probability as tfp
 
 from pixelCNN import PixelCNNModel
-from MADE import sample_unit_numbers, input_unit_numbers, ordered_unit_number, get_mask_made, MADELayer
+from MADE import sample_unit_numbers, input_unit_numbers, ordered_input_unit_numbers, get_mask_made, MADELayer
 
 #
 class DenseMasked(tf.keras.layers.Layer):

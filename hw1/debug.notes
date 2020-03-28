@@ -361,21 +361,28 @@ Want:
 This would work if have D = H*W*C variables taking on N bins, then mask the aux with unit numbers
 1,1,1,2,2,2,3,3,3...,D,D,D or similar (D-1?) as then it will mask the context to only the previous
 pixels!
+But D = H*W*C >> n_units = 124 so most of the D values will not be there
+***
+* Might be worth trying again now fixed MADE bug? Need change input_unit_numbers()
+        aux_unit_numbers = ordered_input_unit_numbers(D, N)
+  and D=28*28*3
+__________________________________
 Or do you want:
+%% GOING THIS WAY ATM %%
 (bs*h*w, c*n) input for each pixel with prev channels masked
 (bs*h*w, c*n) output for each pixel with one channel masked out so uncond sample
 This makes sense how the pixelCNN would then be input since it's masked can just concat it
-But this limits the size of the NN layers
-%% GOING THIS WAY ATM %%
-"""
+But this limits the size of the NN layers and shares weights between pixels
+Where does spatial information come from ? pixelCNN embedding?
+DS this way
+.
+Fixed a bug doesnt go blue now, think need some tricks to improve it?
 
-* Try decipher what ikrets einsum is doing!
-* first try get basic working even if bad, then try improve with tricks
-* print intermediary values in yours, adapted and git version of ikrets
-* relu after pixelCNN
-* Look at embeddings from pixelCNN that are input as aux
+***
+* try with factorised=False?
+* aux input each layer think this is important in this setup
 * Some res connections in MADE eg. Aux input to the unconnected unit in final layer MADE
-* aux input each layer
+"""
 
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN
