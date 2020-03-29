@@ -380,12 +380,14 @@ DS this way
 Fixed a bug doesnt go blue now, think need some tricks to improve it?
 
 ***
-* aux input each layer think this is important in this setup, need figure out what unit numbers you want
+* still seems to be a bug not quite there with the loss and samples, more tricks and debug
+* check the aux input is ok need figure out what unit numbers you want
 all 1s then all 0s for output layer? dont want to mask out the aux. in fact they don't really need
 unit numbers at all as this might mismatch the shape of the mask. Aux essentially count as units on the
 prev layer so as long as the aux units have same unit number or less on the final layer than their prev
 layer should mask ok
-* Some res connections in MADE eg. Aux input to the unconnected unit in final layer MADE
+* grad clip?
+* Some res connections in MADE?
 """
 
 Should be factorised=True for pixelCNNMADE bc o/w the R channel will have information from G and B
@@ -394,6 +396,7 @@ through pixelCNN when it should in fact be unconditionally generated in MADE
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN
 * remove ds code and remove ordered=True from MADE
+* clean up
 - Factorised=True seems important, not sure why?
 * Clean up Ds and Ns etc
 * Run gradient thing part 3
