@@ -35,7 +35,6 @@ class PixelCNNMADEModel(Model):
         self.pixelcnn_model = PixelCNNModel(self.H, self.W, self.C, self.N, factorised=self.factorised)#, flat=True)
         # we have auxiliary variables of the flattened image shape
         self.made_model = MADEModel(self.D, self.N, self.n_hidden_units, N_aux=self.D*self.N)
-        super().build(input_shape)
 
     def call(self, inputs, **kwargs):
         """
@@ -51,14 +50,13 @@ class PixelCNNMADEModel(Model):
         # we input the current pixel's channels one-hot to MADE
         x_one_hot = one_hot_inputs(inputs, self.D, self.N)
         # concat inputs and aux inputs for MADE
-        x = tf.concat([x_one_hot, aux_input], -1)
-        x = self.made_model(x)
+        x = self.made_model((x_one_hot, aux_input))
         x = tf.reshape(x, (-1, self.H, self.W, self.C, self.N))
         return x
 
 # overwrite MADE
 class PixelCNNMADE(MADE):
-    def __init__(self, H=28, W=28, C=3, N=4, D=28*28*3, learning_rate=10e-4, n_hidden_units=124):
+    def __init__(self, H=28, W=28, C=3, N=4, D=3, learning_rate=10e-4, n_hidden_units=124):
         """
         H, W, C image shape: height, width, channels
         N is number of values per variable

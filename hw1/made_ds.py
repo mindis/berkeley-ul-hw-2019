@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow_probability as tfp
 
 from pixelCNN import PixelCNNModel
-from MADE import sample_unit_numbers, input_unit_numbers, ordered_input_unit_numbers, get_mask_made, MADELayer
+from MADE import sample_unit_numbers, get_input_unit_numbers, ordered_input_unit_numbers, get_mask_made, MADELayer
 
 #
 class DenseMasked(tf.keras.layers.Layer):
@@ -69,7 +69,7 @@ class DS_PixelCNN_MADE_Model(tf.keras.Model):
         masks = get_masks(self.n_hidden_units, self.n_layers, self.D, self.N * self.D, self.N, self.aux_all)
         hidden = [self.n_hidden_units] * self.n_layers + [self.D * self.N]
         self.made_layers = []
-        prev_unit_numbers = input_unit_numbers(self.D, self.N, self.N * self.D)
+        prev_unit_numbers = get_input_unit_numbers(self.D, self.N, self.N * self.D)
         for i, h in enumerate(hidden):
             activation = tf.nn.relu if i < self.n_layers else None
             # self.made_layers.append(DenseMasked(h, masks[i], activation=activation))

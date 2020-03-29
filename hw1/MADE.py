@@ -38,7 +38,7 @@ def ordered_input_unit_numbers(D, N):
     return np.repeat(np.arange(1, D+1), N)
 
 
-def input_unit_numbers(D, N, N_aux):
+def get_input_unit_numbers(D, N):
     """
     :param D: the number of RVs
     :param N: number of values each RV can take (because we one-hot it so each value of each RV is a single RV)
@@ -48,11 +48,20 @@ def input_unit_numbers(D, N, N_aux):
     then for last N_aux inputs we have 1's because the aux is assumed to be conditioned on so unmasked
     """
     unit_numbers = ordered_input_unit_numbers(D, N)
-    if N_aux > 0:
-        # aux_unit_numbers = np.ones(N_aux)
-        aux_unit_numbers = ordered_input_unit_numbers(D, N)
-        unit_numbers = np.hstack([unit_numbers, aux_unit_numbers])
     return unit_numbers
+
+
+def get_output_unit_numbers(D, N):
+    unit_numbers = ordered_input_unit_numbers(D, N)
+    return unit_numbers
+
+
+def get_aux_unit_numbers(D, N, N_aux, is_output):
+    aux_unit_numbers = np.ones(N_aux)
+    # aux_unit_numbers = ordered_input_unit_numbers(D, N)
+    if is_output:
+        return aux_unit_numbers - 1  # bc output is strict ineq
+    return aux_unit_numbers
 
 
 def get_mask_made(prev_unit_numbers, unit_numbers, is_output):
@@ -89,8 +98,9 @@ def one_hot_inputs(x, D, N):
 
 
 class MADELayer(Dense):
-    def __init__(self, n_units, prev_unit_numbers, D,
-                 unit_numbers=None, activation="relu", is_output=False, **kwargs):
+    def __init__(self, n_units, prev_unit_numbers, D, N,
+                 unit_numbers=None, activation="relu", is_output=False,
+                 N_aux=0, **kwargs):
         """
         n_units is the number of units in this layer
         For MADE masking:
@@ -99,9 +109,12 @@ class MADELayer(Dense):
         unit_numbers are the numbers for each unit in this layer, if None (default) to random sampling these numbers
         """
         super().__init__(n_units, activation=activation, **kwargs)
-        self.prev_unit_numbers = prev_unit_numbers
+        if N_aux > 0:  # add aux to prev unit numbers
+            aux_unit_numbers = get_aux_unit_numbers(D, N, N_aux, is_output)
+            prev_unit_numbers = np.hstack([prev_unit_numbers, aux_unit_numbers])
         if unit_numbers is None:
             unit_numbers = ordered_unit_numbers(n_units, np.min(prev_unit_numbers), D)
+        self.prev_unit_numbers = prev_unit_numbers
         self.unit_numbers = unit_numbers
         self.is_output = is_output
 
@@ -110,6 +123,7 @@ class MADELayer(Dense):
         self.mask = get_mask_made(self.prev_unit_numbers, self.unit_numbers, self.is_output)
 
     def call(self, inputs, **kwargs):
+        # input shape (bs, n_in + n_aux)
         # mask kernel for internal op, but then return to copy of kernel after for learning
         kernel_copy = self.kernel
         self.kernel = self.kernel * self.mask
@@ -138,19 +152,26 @@ class MADEModel(tf.keras.Model):
 
     def build(self, input_shape, **kwargs):
         # get ordered unit numbers for inputs with aux
-        in_unit_numbers = input_unit_numbers(self.D, self.N, self.N_aux)
-        self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D)
-        self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D)
+        in_unit_numbers = get_input_unit_numbers(self.D, self.N)
+        self.layer1 = MADELayer(self.n_hidden_units, in_unit_numbers, self.D, self.N, N_aux=self.N_aux)
+        self.layer2 = MADELayer(self.n_hidden_units, self.layer1.unit_numbers, self.D, self.N, N_aux=self.N_aux)
         # N * D outputs
         # Ordered unit numbers for output
-        out_unit_numbers = ordered_input_unit_numbers(self.D, self.N)
-        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, unit_numbers=out_unit_numbers,
-                                      activation=None, is_output=True)
+        out_unit_numbers = get_output_unit_numbers(self.D, self.N)
+        self.output_layer = MADELayer(self.N * self.D, self.layer2.unit_numbers, self.D, self.N, N_aux=self.N_aux,
+                                      unit_numbers=out_unit_numbers, activation=None, is_output=True)
 
     def call(self, inputs, training=None, mask=None):
-        x = self.layer1(inputs)
-        x = self.layer2(x)
-        x = self.output_layer(x)
+        if self.N_aux > 0:
+            x, aux = inputs
+            x = self.layer1(tf.concat([x, aux], axis=-1))
+            x = self.layer2(tf.concat([x, aux], axis=-1))
+            x = self.output_layer(tf.concat([x, aux], axis=-1))
+        else:
+            x = inputs
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.output_layer(x)
         x_i_outputs = tf.reshape(x, (-1, self.D, self.N))
         return x_i_outputs
 

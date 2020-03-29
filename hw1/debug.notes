@@ -367,8 +367,6 @@ Need change input_unit_numbers()
   and D=28*28*3
 Seemed to train to samples with noise over what would otherwise be a decent samples ??
 ***
-* Might be worth trying again now fixed MADE bug?
-* Try with ordered_unit_numbers as tile not repeats or with sample unit numbers?
 __________________________________
 Or do you want:
 %% GOING THIS WAY ATM %%
@@ -382,10 +380,16 @@ DS this way
 Fixed a bug doesnt go blue now, think need some tricks to improve it?
 
 ***
-* try with factorised=False?
-* aux input each layer think this is important in this setup
+* aux input each layer think this is important in this setup, need figure out what unit numbers you want
+all 1s then all 0s for output layer? dont want to mask out the aux. in fact they don't really need
+unit numbers at all as this might mismatch the shape of the mask. Aux essentially count as units on the
+prev layer so as long as the aux units have same unit number or less on the final layer than their prev
+layer should mask ok
 * Some res connections in MADE eg. Aux input to the unconnected unit in final layer MADE
 """
+
+Should be factorised=True for pixelCNNMADE bc o/w the R channel will have information from G and B
+through pixelCNN when it should in fact be unconditionally generated in MADE
 
 * Debug new pixelcnn-made
     * Look my MADE masking cf DS MADE masking for pixelCNN
