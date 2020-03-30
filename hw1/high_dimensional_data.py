@@ -166,24 +166,35 @@ def pixel_cnn_few(model, n_in=1, n_out=10000):
     train_and_eval_main(tf_data, tf_data, model, "few", n_epochs=2, log_every=10)
 
 
+def pixel_cnn_receptive_field_visualisation():
+    H, W, C = 28, 28, 3
+    model = PixelCNN(H, W, C).model
+    x = tf.Variable(np.ones((1, H, W, C)), dtype=tf.float32)
+    with tf.GradientTape() as tape:
+        preds = model(x)
+    grads = tape.gradient(preds, x)
+    abs_grads = tf.abs(grads)
+    max_grads = tf.reduce_max(abs_grads, axis=-1, keepdims=True)  # over channels
+    plot_image(max_grads, "figures/1_3", "pixel_cnn_receptive_field_at_14_14_0.svg", n_vals=1)
+
+
 if __name__ == "__main__":
     set_seed()
 
-    models = {"PixelCNN": PixelCNN, "PixelCNN-MADE": PixelCNNMADE}
-    tasks = {"debug": pixel_cnn_debug, "few": pixel_cnn_few, "main": pixel_cnn_main}
+    # models = {"PixelCNN": PixelCNN, "PixelCNN-MADE": PixelCNNMADE}
+    # tasks = {"debug": pixel_cnn_debug, "few": pixel_cnn_few, "main": pixel_cnn_main}
+    #
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("Model", help="Model to train", choices=models.keys())
+    # parser.add_argument("Dataset", help="Dataset to run model on", choices=tasks.keys())
+    # args = parser.parse_args()
+    #
+    # model_uninit = models[args.Model]
+    # task = args.Dataset
+    # if task == "debug":
+    #     model = model_uninit(H=4, W=4)
+    # else:
+    #     model = model_uninit()
+    # tasks[task](model)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("Model", help="Model to train", choices=models.keys())
-    parser.add_argument("Dataset", help="Dataset to run model on", choices=tasks.keys())
-    args = parser.parse_args()
-
-    model_uninit = models[args.Model]
-    task = args.Dataset
-    if task == "debug":
-        model = model_uninit(H=4, W=4)
-    else:
-        model = model_uninit()
-    tasks[task](model)
-
-# TODO: code up receptive field visualisations, also do 3 x 3 grid like example masks to show
-#   how factorised / full compare in channels input path to output
+    pixel_cnn_receptive_field_visualisation()

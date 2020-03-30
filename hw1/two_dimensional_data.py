@@ -65,7 +65,6 @@ def eval_model(model, training_logger):
     training_logger.plot()
 
 
-# TODO: adapt as high_dimensional_data.py to use X_test as X_val (so no X_val)
 def model_main(model, X_train, X_val):
     training_logger = TrainingLogger(model.name, "1_2")
     train_model(X_train, X_val, model, training_logger)

@@ -395,8 +395,6 @@ through pixelCNN when it should in fact be unconditionally generated in MADE
 
 PixelCNN-MADE works!
 
-* clean up
-* check made and pixelcnn still ok
 * Run gradient thing part 3
-* Sort README
-    About factorised flag on pixelCNN
+* try best pixelcnn-made with relu or delete relu line (Todo)
+* check made and pixelcnn still ok
