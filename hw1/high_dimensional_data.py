@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from pixelCNN import PixelCNN, display_image_grid, plot_image
+from pixelCNN import PixelCNN, display_image_grid, plot_image, PixelCNNModel
 from pixelCNNMADE import PixelCNNMADE
 from utils import TrainingLogger
 import argparse
@@ -167,15 +167,28 @@ def pixel_cnn_few(model, n_in=1, n_out=10000):
 
 
 def pixel_cnn_receptive_field_visualisation():
-    H, W, C = 28, 28, 3
-    model = PixelCNN(H, W, C).model
+    H, W, C, N = 28, 28, 3, 4
+    factorised = True
+    factorised_str = "_factorised" if factorised else ""
+    model = PixelCNNModel(H, W, C, N, factorised)
     x = tf.Variable(np.ones((1, H, W, C)), dtype=tf.float32)
     with tf.GradientTape() as tape:
         preds = model(x)
-    grads = tape.gradient(preds, x)
+        pred_centre = preds[:, 14, 14, 0]
+    grads = tape.gradient(pred_centre, x)
+    plot_grads_receptive_field(grads, "pixel_cnn_receptive_field_at_14_14_0" + factorised_str)
+    with tf.GradientTape() as tape:
+        preds = model(x)
+        pred_loss = tf.nn.log_softmax(preds)
+    grads = tape.gradient(pred_loss, x)
+    plot_grads_receptive_field(grads, "pixel_cnn_receptive_field_loss" + factorised_str)
+
+
+def plot_grads_receptive_field(grads, title):
     abs_grads = tf.abs(grads)
-    max_grads = tf.reduce_max(abs_grads, axis=-1, keepdims=True)  # over channels
-    plot_image(max_grads, "figures/1_3", "pixel_cnn_receptive_field_at_14_14_0.svg", n_vals=1)
+    max_grads = tf.reduce_max(abs_grads, axis=-1).numpy()[0]  # over channels
+    plot_image(max_grads, "figures/1_3", title,
+               n_vals=1, color_bar=True)
 
 
 if __name__ == "__main__":

@@ -274,10 +274,12 @@ class PixelCNN:
         return images
 
 
-def plot_image(image, dir_path, title, n_vals=3):
+def plot_image(image, dir_path, title, n_vals=3, color_bar=False):
     plt.clf()
     # We use values [0, ..., 3] so we rescale colours for plotting
-    plt.imshow((image * 255. / n_vals).astype(np.uint8), cmap="gray")
+    im = plt.imshow((image * 255. / n_vals).astype(np.uint8), cmap="gray")
+    if color_bar:
+        plt.colorbar(im, ax=plt.gca())
     if title is not None:
         plt.title(title)
         plt.savefig("{}/{}.svg".format(dir_path, title))

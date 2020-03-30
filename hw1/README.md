@@ -43,8 +43,10 @@ pixelCNN.py
 In the factorised case probabilities are treated independently p(r)p(g)p(b), so mask type A all have centre off 
 and B all have it on.
 
-Otherwise, the full joint is as in the paper and uses the full joint p(r,g,b) = p(r)p(g|r)p(b|r,g). It can thus model dependencies between
-channels. Here A and B masks have centre pixels on/off in different channels to allow this.
+Otherwise (non-factorised) the full joint is as in the paper and uses the full joint p(r,g,b) = p(r)p(g|r)p(b|r,g). It can thus model dependencies between
+channels. 
+
+Here A and B masks have centre pixels on/off in different channels to allow this.
 
 In my implementation of pixelCNN-MADE, the NN takes one pixel (all channels) from
 pixelCNN as aux input and one pixel of input from data and outputs one pixel
