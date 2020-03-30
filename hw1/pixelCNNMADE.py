@@ -42,7 +42,7 @@ class PixelCNNMADEModel(Model):
         """
         # get pixelCNN outputs
         x = self.pixelcnn_model(tf.cast(inputs, tf.float32) / self.N)
-        x = tf.nn.relu(x)  # TODO: remove?
+        x = tf.nn.relu(x)
         # we input the pixelCNN outputs as auxiliary variables to MADE
         # reshape such that each pixel is a data point in a batch of size (n_images_in_batch * image_size_flat)
         # each pixel is then passed through MADE

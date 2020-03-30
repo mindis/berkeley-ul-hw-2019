@@ -174,7 +174,7 @@ def pixel_cnn_receptive_field_visualisation():
     x = tf.Variable(np.ones((1, H, W, C)), dtype=tf.float32)
     with tf.GradientTape() as tape:
         preds = model(x)
-        pred_centre = preds[:, 14, 14, 0]
+        pred_centre = tf.math.log(preds[:, 14, 14, 0])
     grads = tape.gradient(pred_centre, x)
     plot_grads_receptive_field(grads, "pixel_cnn_receptive_field_at_14_14_0" + factorised_str)
     with tf.GradientTape() as tape:
@@ -194,20 +194,19 @@ def plot_grads_receptive_field(grads, title):
 if __name__ == "__main__":
     set_seed()
 
-    # models = {"PixelCNN": PixelCNN, "PixelCNN-MADE": PixelCNNMADE}
-    # tasks = {"debug": pixel_cnn_debug, "few": pixel_cnn_few, "main": pixel_cnn_main}
-    #
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("Model", help="Model to train", choices=models.keys())
-    # parser.add_argument("Dataset", help="Dataset to run model on", choices=tasks.keys())
-    # args = parser.parse_args()
-    #
-    # model_uninit = models[args.Model]
-    # task = args.Dataset
-    # if task == "debug":
-    #     model = model_uninit(H=4, W=4)
-    # else:
-    #     model = model_uninit()
-    # tasks[task](model)
+    models = {"PixelCNN": PixelCNN, "PixelCNN-MADE": PixelCNNMADE}
+    tasks = {"debug": pixel_cnn_debug, "few": pixel_cnn_few, "main": pixel_cnn_main}
 
-    pixel_cnn_receptive_field_visualisation()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("Model", help="Model to train", choices=models.keys())
+    parser.add_argument("Dataset", help="Dataset to run model on", choices=tasks.keys())
+    args = parser.parse_args()
+
+    model_uninit = models[args.Model]
+    task = args.Dataset
+    if task == "debug":
+        model = model_uninit(H=4, W=4)
+    else:
+        model = model_uninit()
+    tasks[task](model)
+

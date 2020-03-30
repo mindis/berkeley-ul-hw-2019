@@ -27,6 +27,7 @@ MADE.py
 ```
 
 See figures/1_2 for plots.
+See logs/1_2 for logs.
 
 Both have empirical distributions that match the training distribution.
 
