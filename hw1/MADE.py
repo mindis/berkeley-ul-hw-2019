@@ -177,7 +177,8 @@ class MADEModel(tf.keras.Model):
 
 
 class MADE:
-    def __init__(self, name="MADE", N=200, D=2, one_hot=True, n_hidden_units=64, learning_rate=10e-3):
+    def __init__(self, name="MADE", N=200, D=2, one_hot=True, n_hidden_units=64, learning_rate=10e-3,
+                 grad_clip=1):
         """
         :param name: model name
         :param N: number of values each var can take
@@ -191,6 +192,7 @@ class MADE:
         self.one_hot = one_hot
         self.n_hidden_units = n_hidden_units
         self.setup_model()
+        self.grad_clip = grad_clip
 
     def setup_model(self):
         """
@@ -248,6 +250,7 @@ class MADE:
         with tf.GradientTape() as tape:
             logprob = self.eval(X_train)
         grads = tape.gradient(logprob, self.model.trainable_variables)
+        grads, _ = tf.clip_by_global_norm(grads, self.grad_clip)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return logprob.numpy()
 
